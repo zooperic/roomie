@@ -37,6 +37,7 @@ Given the user's message, respond ONLY with this JSON:
     "item": "<item name if mentioned, e.g. milk, eggs, butter>",
     "quantity": <numeric quantity if mentioned, e.g. 2, 1.5 — omit if not mentioned>,
     "unit": "<unit if mentioned, e.g. liters, kg, units, packets — omit if not mentioned>",
+    "operation": "<add|set|subtract — default: add>",
     "url": "<URL if a link was shared — omit if not mentioned>",
     "text": "<any other relevant text to pass to the agent>"
   }},
@@ -45,11 +46,14 @@ Given the user's message, respond ONLY with this JSON:
 }}
 
 Parameter extraction rules:
-- For "I bought 2 liters of milk" → item: "milk", quantity: 2, unit: "liters"
+- For "add 10 eggs" or "I bought 2L milk" → item: "milk", quantity: 2, unit: "liters", operation: "add"
+- For "set eggs to 10" or "eggs = 10" → item: "eggs", quantity: 10, operation: "set"
+- For "I took 2 eggs" or "used 500g flour" → item: "eggs", quantity: 2, operation: "subtract"
+- For "remove 2 eggs" → item: "eggs", quantity: 2, operation: "subtract"
 - For "do I have eggs" → item: "eggs"
 - For "what's in the fridge" → no item needed
-- For recipe links → url: "<the link>"
 - Always extract item name in lowercase
+- Operation values: "add" (default for bought/added), "set" (for explicit setting), "subtract" (for took/used/consumed/remove)
 - Omit parameters that are not present in the message — do not guess
 
 If no agent can handle the request, use target_agent: "alfred" and action: "clarify".
@@ -58,6 +62,18 @@ Never make up agent names. Only use agents listed above.
 
 
 async def route_intent(raw_message: str, user_id: str = "default") -> Intent:
+    # Handle simple greetings without LLM call
+    message_lower = raw_message.lower().strip()
+    greetings = ["hi", "hello", "hey", "howdy", "sup", "what's up", "whats up", "yo", "hiya"]
+    if message_lower in greetings:
+        return Intent(
+            raw_message=raw_message,
+            target_agent="alfred",
+            action="greet",
+            parameters={},
+            user_id=user_id
+        )
+    
     agent_context = build_routing_context()
     system = ROUTING_SYSTEM_PROMPT.format(agent_context=agent_context)
 
@@ -89,6 +105,23 @@ async def route_intent(raw_message: str, user_id: str = "default") -> Intent:
 
 
 async def dispatch(intent: Intent):
+    # Handle greetings from Alfred
+    if intent.action == "greet":
+        import random
+        from shared.models import AgentResponse, ActionType
+        greetings = [
+            "Hey there! 👋 How can I help you today?",
+            "Hello! What can I do for you?",
+            "Hi! Ready to help with your fridge, shopping, or cooking.",
+        ]
+        return AgentResponse(
+            agent="alfred",
+            result=random.choice(greetings),
+            action_type=ActionType.INFORM,
+            requires_confirmation=False,
+            confidence=1.0
+        )
+    
     agent = AGENT_REGISTRY.get(intent.target_agent)
 
     if agent is None:

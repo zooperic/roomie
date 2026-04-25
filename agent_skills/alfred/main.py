@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from shared.db import init_db, SessionLocal, AgentEventDB
+from shared.db import init_db, SessionLocal, AgentEventDB, InventoryItemDB as InventoryDB
 from shared.models import AgentResponse, ActionType
 from agent_skills.alfred.router import route_intent, dispatch, register_agent
 
@@ -30,11 +30,17 @@ class MessageRequest(BaseModel):
     message: str
     user_id: str = "default"
     session_id: Optional[str] = None
+    force_agent: Optional[str] = None  # Skip routing, go directly to this agent
 
 
 class ConfirmActionRequest(BaseModel):
     session_id: str
     confirmed: bool
+
+
+class ScanFridgeRequest(BaseModel):
+    image_base64: str
+    user_id: str = "default"
 
 
 pending_confirmations: dict[str, AgentResponse] = {}
@@ -50,8 +56,27 @@ async def dashboard():
 
 @app.post("/message")
 async def receive_message(req: MessageRequest):
-    intent = await route_intent(req.message, user_id=req.user_id)
-    response = await dispatch(intent)
+    from agent_skills.alfred.router import AGENT_REGISTRY
+    
+    # If force_agent is specified, use Alfred's router for action classification but force the target
+    if req.force_agent:
+        # Verify agent exists
+        agent = AGENT_REGISTRY.get(req.force_agent)
+        if not agent:
+            raise HTTPException(status_code=404, detail=f"Agent '{req.force_agent}' not found")
+        
+        # Use Alfred's normal router to classify the action
+        intent = await route_intent(req.message, user_id=req.user_id)
+        
+        # Override the target agent to the forced one
+        intent.target_agent = req.force_agent
+        
+        response = await dispatch(intent)
+    else:
+        # Normal routing through Alfred
+        intent = await route_intent(req.message, user_id=req.user_id)
+        response = await dispatch(intent)
+    
     if response.needs_human():
         session_id = req.session_id or f"{req.user_id}_{intent.action}"
         pending_confirmations[session_id] = response
@@ -73,8 +98,150 @@ async def confirm_action(req: ConfirmActionRequest):
     if not req.confirmed:
         del pending_confirmations[req.session_id]
         return {"status": "cancelled", "message": "Action cancelled."}
+    
+    # If this is a photo scan confirmation, apply inventory updates
+    if req.session_id.startswith("scan_"):
+        from shared.db import SessionLocal, InventoryItemDB as InventoryDB
+        from datetime import datetime
+        
+        diff = response.result
+        db = SessionLocal()
+        try:
+            # Apply added items
+            for item in diff.get("added", []):
+                new_item = InventoryDB(
+                    name=item["name"],
+                    quantity=item["quantity"],
+                    unit=item.get("unit", "units"),
+                    agent_owner="elsa",
+                    created_at=datetime.utcnow()
+                )
+                db.add(new_item)
+            
+            # Apply updated items
+            for item in diff.get("updated", []):
+                existing = db.query(InventoryDB).filter_by(name=item["name"], agent_owner="elsa").first()
+                if existing:
+                    existing.quantity = item["quantity"]
+            
+            # Apply removed items
+            for item in diff.get("removed", []):
+                db.query(InventoryDB).filter_by(name=item["name"], agent_owner="elsa").delete()
+            
+            db.commit()
+        finally:
+            db.close()
+        
+        del pending_confirmations[req.session_id]
+        return {"status": "confirmed", "message": "Inventory updated from photo scan"}
+    
     del pending_confirmations[req.session_id]
     return {"status": "confirmed", "message": f"Action confirmed: {response.suggested_action}", "result": response.result}
+
+
+@app.post("/scan_fridge")
+async def scan_fridge(req: ScanFridgeRequest):
+    """Process fridge photo via vision LLM and return inventory diff"""
+    from agent_skills.alfred.router import AGENT_REGISTRY
+    from shared.llm_provider import call_llm_vision
+    from shared.db import SessionLocal, InventoryItemDB as InventoryDB
+    import json
+    
+    # Call vision LLM to detect items
+    vision_prompt = """Analyze this fridge photo and list ALL visible food items with their estimated quantities.
+
+Return a JSON array of items in this exact format:
+[
+  {"name": "milk", "quantity": 2, "unit": "bottles"},
+  {"name": "eggs", "quantity": 6, "unit": "units"},
+  {"name": "tomatoes", "quantity": 4, "unit": "units"}
+]
+
+Rules:
+- Be specific but use common names (not brand names)
+- Estimate quantities conservatively
+- Use standard units: bottles, units, kg, g, L, ml
+- Only include items you can clearly see
+- If unsure about quantity, round down"""
+
+    try:
+        vision_result = await call_llm_vision(vision_prompt, req.image_base64)
+        
+        # Strip markdown code blocks if present
+        vision_result = vision_result.strip()
+        if vision_result.startswith("```json"):
+            vision_result = vision_result[7:]  # Remove ```json
+        if vision_result.startswith("```"):
+            vision_result = vision_result[3:]  # Remove ```
+        if vision_result.endswith("```"):
+            vision_result = vision_result[:-3]  # Remove trailing ```
+        vision_result = vision_result.strip()
+        
+        # Parse JSON from LLM response
+        detected_items = json.loads(vision_result)
+    except Exception as e:
+        return {"status": "error", "message": f"Vision processing failed: {e}"}
+    
+    # Get current inventory from Elsa
+    db = SessionLocal()
+    try:
+        current_inventory = db.query(InventoryItemDB).filter_by(agent_owner='elsa').all()
+        current_dict = {item.name: {"quantity": item.quantity, "unit": item.unit} for item in current_inventory}
+    finally:
+        db.close()
+    
+    # Calculate diff
+    diff = calculate_inventory_diff(current_dict, detected_items)
+    
+    # Create session for confirmation
+    session_id = f"scan_{req.user_id}_{hash(req.image_base64[:50])}"
+    
+    # Store diff in pending confirmations
+    from shared.models import AgentResponse, ActionType
+    response = AgentResponse(
+        agent="elsa",
+        action_type=ActionType.UPDATE,
+        result=diff,
+        suggested_action=f"Update inventory based on photo scan",
+        requires_confirmation=True,
+        confidence=0.7  # Vision is not 100% accurate
+    )
+    pending_confirmations[session_id] = response
+    
+    return {
+        "status": "awaiting_confirmation",
+        "session_id": session_id,
+        "diff": diff,
+        "message": "Review detected changes before updating inventory"
+    }
+
+
+def calculate_inventory_diff(current: dict, detected: list) -> dict:
+    """Calculate diff between current inventory and detected items"""
+    detected_dict = {item["name"]: item for item in detected}
+    
+    added = []
+    removed = []
+    updated = []
+    
+    # Find added and updated items
+    for name, item in detected_dict.items():
+        if name not in current:
+            added.append(item)
+        elif current[name]["quantity"] != item["quantity"]:
+            updated.append({
+                "name": name,
+                "old_quantity": current[name]["quantity"],
+                "quantity": item["quantity"],
+                "unit": item.get("unit", current[name].get("unit", ""))
+            })
+    
+    # Find removed items
+    for name in current:
+        if name not in detected_dict:
+            removed.append({"name": name})
+    
+    return {"added": added, "removed": removed, "updated": updated}
 
 
 @app.get("/status")

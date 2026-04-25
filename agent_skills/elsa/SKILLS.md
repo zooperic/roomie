@@ -48,18 +48,37 @@ Identify items at or below their low-stock threshold.
 
 ---
 
-### 4. `parse_recipe`
-Extract ingredients from a recipe URL or pasted text. Cross-check against fridge inventory.
+### 4. `parse_recipe` **[PHASE 1 POC — moves to Remy in Phase 2]**
+Extract ingredients from various recipe inputs and cross-check against fridge inventory.
 
-**Triggers:** "here's a recipe link", "can I make pasta", "I saw this on Instagram"
+**IMPORTANT:** This is a temporary POC implementation. In Phase 2, recipe parsing moves to Remy (kitchen agent), and Elsa returns to pure fridge inventory management.
+
+**Triggers:** 
+- User pastes recipe URL
+- User says dish name ("I want to make Paneer Lababdar")  
+- User copy-pastes recipe text
+- User shares video link (Phase 3+)
+
+**Supported Ingestion Modes (Phase 1 POC):**
+
+| Mode | Example Input | How It Works | Status |
+|------|---------------|--------------|--------|
+| **URL** | `https://recipe-blog.com/paneer` | `web_fetch(url)` → parse HTML → extract ingredients | ✅ P1 |
+| **Copy-Paste Text** | User pastes full recipe | Direct LLM parsing (no fetch) | ✅ P1 |
+| **Dish Name** | "Paneer Lababdar" | `web_search` → pick top recipe → fetch → parse | 🟡 P1 |
+| **Video/Reels** | `youtube.com/shorts/abc` | Transcript or vision analysis | ❌ P3+ |
 
 **Flow:**
-1. LLM extracts structured ingredient list (name, quantity, unit)
-2. Elsa checks DB for each ingredient
-3. Returns: available list, missing list
-4. If missing items exist → suggests order (requires Alfred confirmation)
+1. Detect input type (URL, text, dish name)
+2. If URL: `web_fetch(url)` to get recipe HTML
+3. If dish name: `web_search("dish_name recipe")` → pick top result → fetch
+4. If copy-paste text: skip fetch, parse directly
+5. LLM extracts structured ingredients: name, quantity, unit
+6. Elsa checks fridge DB for each ingredient
+7. Returns: available list, missing list
+8. If missing items exist → suggests order (requires Alfred confirmation)
 
-**Known limitation (Phase 1):** For recipe URLs, Elsa only processes the URL as text input to the LLM. In Phase 2, a web scraper will fetch the actual page content.
+**Phase 2 refactor:** Move to Remy. Remy will check both fridge (via Elsa) + pantry (self) before compiling missing items list.
 
 ---
 

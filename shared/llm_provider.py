@@ -101,6 +101,35 @@ async def _call_ollama(prompt, system, json_mode, max_tokens, *_):
         return response.json()["response"]
 
 
+async def call_llm_vision(prompt: str, image_base64: str, system: Optional[str] = None) -> str:
+    """Call vision-enabled LLM for image analysis"""
+    if PROVIDER == "ollama":
+        # Use qwen2.5vl:7b for vision with Ollama
+        ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
+        payload = {
+            "model": "qwen2.5vl:7b",
+            "prompt": prompt,
+            "images": [image_base64],
+            "stream": False,
+            "options": {"num_predict": 2048},
+        }
+        if system:
+            payload["system"] = system
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(f"{ollama_url}/api/generate", json=payload)
+            response.raise_for_status()
+            # At the end of call_llm_vision, before return
+            print(f"\n[VISION DEBUG] Raw output:\n{result}\n")
+            return result
+            return response.json()["response"]
+    else:
+        # Use standard call for Claude/OpenAI (they support vision natively)
+        # At the end of call_llm_vision, before return
+        print(f"\n[VISION DEBUG] Raw output:\n{result}\n")
+        return result
+        return await get_llm_response(prompt, system, json_mode=True, max_tokens=2048, image_base64=image_base64)
+
+
 def parse_json_response(raw: str) -> dict:
     cleaned = raw.strip()
     if cleaned.startswith("```"):

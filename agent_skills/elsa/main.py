@@ -37,7 +37,7 @@ class ElsaAgent(BaseAgent):
                 description="Add, update, or remove an item from fridge inventory.",
                 example_triggers=[
                     "I bought milk", "add eggs to fridge", "I used up the curd",
-                    "remove tomatoes", "I finished the juice"
+                    "remove tomatoes", "I finished the juice", "delete milk", "0L milk"
                 ],
                 action_type=ActionType.UPDATE_INVENTORY,
                 requires_confirmation=False,
@@ -142,6 +142,7 @@ class ElsaAgent(BaseAgent):
             name = params.get("name") or params.get("item")
             quantity = float(params.get("quantity", 0))
             unit = params.get("unit", "units")
+            operation = params.get("operation", "add")  # Default to add
 
             if not name:
                 return AgentResponse(
@@ -154,11 +155,173 @@ class ElsaAgent(BaseAgent):
                 InventoryItemDB.agent_owner == AGENT_NAME,
             ).first()
 
+            # Handle subtract operation
+            if operation == "subtract":
+                if not existing:
+                    return AgentResponse(
+                        agent=AGENT_NAME,
+                        result=f"Can't remove {name} - not in fridge.",
+                        action_type=ActionType.INFORM,
+                    )
+                
+                new_qty = existing.quantity - quantity
+                if new_qty <= 0:
+                    db.delete(existing)
+                    db.add(AgentEventDB(
+                        agent=AGENT_NAME, event_type="inventory_remove",
+                        payload={"item": name, "consumed": quantity},
+                    ))
+                    db.commit()
+                    return AgentResponse(
+                        agent=AGENT_NAME,
+                        result=f"Removed {name} from fridge (used {quantity} {unit}).",
+                        action_type=ActionType.UPDATE_INVENTORY,
+                        confidence=1.0
+                    )
+                
+                existing.quantity = new_qty
+                existing.last_updated = datetime.utcnow()
+                msg = f"Used {quantity} {unit} of {name}. Remaining: {new_qty} {unit}"
+                db.add(AgentEventDB(
+                    agent=AGENT_NAME, event_type="inventory_update",
+                    payload={"item": name, "quantity": new_qty, "operation": "subtract"},
+                ))
+                db.commit()
+                return AgentResponse(agent=AGENT_NAME, result=msg, action_type=ActionType.UPDATE_INVENTORY, confidence=1.0)
+
+            # Handle add operation (increment)
+            if operation == "add":
+                if existing:
+                    existing.quantity += quantity
+                    existing.unit = unit
+                    existing.last_updated = datetime.utcnow()
+                    msg = f"Added {quantity} {unit} of {name}. Total now: {existing.quantity} {unit}"
+                else:
+                    db.add(InventoryItemDB(
+                        name=name, quantity=quantity, unit=unit,
+                        category=params.get("category", "general"),
+                        agent_owner=AGENT_NAME,
+                        low_stock_threshold=params.get("low_stock_threshold"),
+                    ))
+                    msg = f"Added {name}: {quantity} {unit}"
+                
+                db.add(AgentEventDB(
+                    agent=AGENT_NAME, event_type="inventory_update",
+                    payload={"item": name, "quantity": quantity, "operation": "add"},
+                ))
+                db.commit()
+                return AgentResponse(agent=AGENT_NAME, result=msg, action_type=ActionType.UPDATE_INVENTORY, confidence=1.0)
+
+            # Handle set operation (replace)
+            if operation == "set":
+                if quantity <= 0:
+                    if existing:
+                        db.delete(existing)
+                        db.commit()
+                        return AgentResponse(
+                            agent=AGENT_NAME,
+                            result=f"Removed {name} from fridge.",
+                            action_type=ActionType.UPDATE_INVENTORY,
+                            confidence=1.0
+                        )
+                    else:
+                        return AgentResponse(
+                            agent=AGENT_NAME,
+                            result=f"'{name}' is not in the fridge inventory.",
+                            action_type=ActionType.INFORM,
+                        )
+                
+                if existing:
+                    existing.quantity = quantity
+                    existing.unit = unit
+                    existing.last_updated = datetime.utcnow()
+                    msg = f"Set {name} to {quantity} {unit}"
+                else:
+                    db.add(InventoryItemDB(
+                        name=name, quantity=quantity, unit=unit,
+                        category=params.get("category", "general"),
+                        agent_owner=AGENT_NAME,
+                        low_stock_threshold=params.get("low_stock_threshold"),
+                    ))
+                    msg = f"Added {name}: {quantity} {unit}"
+                
+                db.add(AgentEventDB(
+                    agent=AGENT_NAME, event_type="inventory_update",
+                    payload={"item": name, "quantity": quantity, "operation": "set"},
+                ))
+                db.commit()
+                return AgentResponse(agent=AGENT_NAME, result=msg, action_type=ActionType.UPDATE_INVENTORY, confidence=1.0)
+
+        finally:
+            db.close()
+            
+        db = SessionLocal()
+        try:
+            name = params.get("name") or params.get("item")
+            quantity = float(params.get("quantity", 0))
+            unit = params.get("unit", "units")
+            operation = params.get("operation", "set")  # "set" or "subtract"
+
+
+            if not name:
+                return AgentResponse(
+                    agent=AGENT_NAME, result="I need an item name to update inventory.",
+                    action_type=ActionType.INFORM, error="missing_item_name",
+                )
+
+            existing = db.query(InventoryItemDB).filter(
+                InventoryItemDB.name.ilike(f"%{name}%"),
+                InventoryItemDB.agent_owner == AGENT_NAME,
+            ).first()
+
+            # If quantity is 0 or negative, remove the item
+            if quantity <= 0:
+                if existing:
+                    db.delete(existing)
+                    db.add(AgentEventDB(
+                        agent=AGENT_NAME, event_type="inventory_remove",
+                        payload={"item": name},
+                    ))
+                    db.commit()
+                    return AgentResponse(
+                        agent=AGENT_NAME, 
+                        result=f"Removed {name} from fridge inventory.",
+                        action_type=ActionType.UPDATE_INVENTORY, 
+                        confidence=1.0
+                    )
+                else:
+                    return AgentResponse(
+                        agent=AGENT_NAME, 
+                        result=f"'{name}' is not in the fridge inventory.",
+                        action_type=ActionType.INFORM,
+                    )
+
+            # Update or add item
             if existing:
-                existing.quantity = quantity
+                if operation == "subtract":
+                    new_qty = existing.quantity - quantity
+                    # If subtracting would make it 0 or negative, remove instead
+                    if new_qty <= 0:
+                        db.delete(existing)
+                        db.add(AgentEventDB(
+                            agent=AGENT_NAME, event_type="inventory_remove",
+                            payload={"item": name, "consumed": quantity},
+                        ))
+                        db.commit()
+                        return AgentResponse(
+                            agent=AGENT_NAME,
+                            result=f"Removed {name} from fridge (used {quantity} {unit}).",
+                            action_type=ActionType.UPDATE_INVENTORY,
+                            confidence=1.0
+                        )
+                    existing.quantity = new_qty
+                    msg = f"Used {quantity} {unit} of {name}. Remaining: {new_qty} {unit}"
+                else:  # operation == "set"
+                    existing.quantity = quantity
+                    msg = f"Updated {name}: {quantity} {unit}"
+    
                 existing.unit = unit
                 existing.last_updated = datetime.utcnow()
-                msg = f"Updated {name}: {quantity} {unit}"
             else:
                 db.add(InventoryItemDB(
                     name=name, quantity=quantity, unit=unit,

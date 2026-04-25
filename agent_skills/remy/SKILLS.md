@@ -1,6 +1,6 @@
 # Remy — Skills & Knowledge Base
 
-> Remy owns the pantry and kitchen counter. Dry goods, staples, spices, packaged items. Anything that's not in the fridge.
+> Remy owns the kitchen: pantry inventory, recipe parsing, meal planning. The kitchen master.
 
 **Status: Phase 2 — Not yet implemented.**
 
@@ -9,14 +9,14 @@
 ## Identity
 
 - **Name**: Remy
-- **Domain**: Kitchen pantry, dry goods, counter storage
-- **Persona**: Methodical. Tracks what's there, doesn't speculate about what isn't.
+- **Domain**: Kitchen operations — pantry inventory, recipe parsing, meal planning
+- **Persona**: Methodical culinary planner. Knows what's in the pantry, parses recipes, compiles shopping lists.
 
 ---
 
 ## What Remy Covers
 
-Remy's inventory scope:
+**Inventory Scope:**
 - Dry grains and legumes (rice, dal, oats, pasta)
 - Spices and masalas
 - Packaged / canned goods
@@ -24,10 +24,15 @@ Remy's inventory scope:
 - Snacks and dry snacks
 - Flour, sugar, salt and other baking staples
 
+**Kitchen Operations:**
+- Recipe parsing and ingredient extraction
+- Meal planning and recipe suggestions
+- Missing ingredient compilation (cross-checks fridge + pantry)
+
 Remy does **not** cover:
 - Anything in the fridge → Elsa
-- Cleaning supplies → future agent (if ever)
-- Medicines → future agent (if ever)
+- Order placement / procurement → Lebowski
+- Cleaning supplies, medicines → out of scope
 
 ---
 
@@ -60,19 +65,101 @@ Identify pantry staples running low.
 
 ---
 
-### 4. `suggest_order`
-Suggest a restock order for low-stock pantry items.
+### 4. `parse_recipe(input)` **[NEW — Phase 2]**
+Extract ingredients from various recipe inputs.
 
-**Triggers:** "restock pantry", "order dry goods", "what pantry items should I buy"
+**Triggers:** 
+- User pastes recipe URL
+- User says dish name ("I want to make Paneer Lababdar")
+- User copy-pastes recipe text
+- User shares video link (Phase 3+)
 
-**Always requires confirmation.**
+**Supported Ingestion Modes:**
+
+| Mode | Example Input | How It Works | Effort | Phase |
+|------|---------------|--------------|--------|-------|
+| **URL** | `https://recipe-blog.com/paneer` | `web_fetch(url)` → parse HTML → extract ingredients | **LOW** ✅ | 1 POC |
+| **Copy-Paste Text** | User pastes full recipe | Direct LLM parsing (no fetch) | **LOW** ✅ | 1 POC |
+| **Dish Name** | "Paneer Lababdar" | `web_search` → pick top recipe → fetch → parse | **MEDIUM** 🟡 | 1-2 |
+| **Video/Reels** | `youtube.com/shorts/abc` | Transcript API OR vision frame analysis | **HIGH** ⚠️ | 3+ |
+
+**Flow (URL mode):**
+1. Detect input type (URL, text, dish name)
+2. If URL: `web_fetch(url)` to get recipe HTML
+3. If dish name: `web_search("dish_name recipe")` → pick top result → fetch
+4. If copy-paste text: skip fetch, parse directly
+5. LLM extracts structured ingredients: name, quantity, unit
+6. Returns ingredient list to Alfred
+
+**Returns:** `[{name: "paneer", quantity: 200, unit: "g"}, {name: "kasuri methi", quantity: 10, unit: "g"}, ...]`
+
+**Video mode (Phase 3+ only):**
+- Requires YouTube transcript API or vision model frame analysis
+- High effort (~300 lines + dependencies)
+- Implement only if heavily requested by users
 
 ---
 
-### 5. `combined_check` (Alfred-initiated)
+### 5. `compile_missing_items(recipe)` **[NEW — Phase 2]**
+Cross-check recipe ingredients against fridge (Elsa) + pantry (self), return missing items.
+
+**Triggers:** Internal — called by Alfred after `parse_recipe`
+
+**Flow:**
+1. Receives parsed ingredient list
+2. Asks Elsa: "Do you have paneer, tomatoes?"
+3. Checks self (Remy's pantry): "Do I have kasuri methi, cream?"
+4. Compiles missing items list
+5. Returns to Alfred → Alfred hands off to Lebowski for procurement
+
+**Returns:** `{missing: ["kasuri methi 10g", "cream 200ml"], have: ["paneer", "tomatoes"]}`
+
+---
+
+### 6. `suggest_meal(preferences)` **[NEW — Phase 2]**
+Suggest recipes based on current fridge + pantry inventory and user preferences.
+
+**Triggers:** "what can I cook tonight", "suggest a recipe", "meal ideas"
+
+**Flow:**
+1. Query Elsa for fridge contents
+2. Query self for pantry contents
+3. LLM suggests 2-3 recipes that can be made with available ingredients
+4. Returns recipe suggestions with missing item count
+
+**Returns:** `["Paneer Tikka Masala (2 items missing)", "Dal Tadka (all available)", ...]`
+
+---
+
+### 7. `combined_check` (Alfred-initiated)
 Alfred calls this when a user asks something like "what do I need to buy overall?" Alfred aggregates Remy's low-stock response with Elsa's low-stock response and presents a unified shopping list.
 
 Remy doesn't call Elsa. Alfred coordinates.
+
+---
+
+## Recipe-to-Cart Flow (Phase 2)
+
+**User:** "I want to make Paneer Lababdar tonight"
+
+```
+Alfred routes to Remy
+  ↓
+Remy: parse_recipe(url) → extracts ingredients
+  ↓
+Remy: compile_missing_items(ingredients)
+  → asks Elsa for fridge check
+  → checks self for pantry
+  → returns missing items list
+  ↓
+Alfred receives missing items
+  ↓
+Alfred hands off to Lebowski
+  ↓
+Lebowski: match_catalog(missing_items) → builds Swiggy cart
+  ↓
+Alfred presents cart to user for confirmation
+```
 
 ---
 

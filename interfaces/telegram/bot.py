@@ -1,6 +1,8 @@
 import os
 import httpx
 import logging
+import base64
+from io import BytesIO
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
@@ -88,12 +90,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Unauthorized.")
         return
 
+    # Group chat support: only respond when bot is mentioned
+    is_group = update.message.chat.type in ["group", "supergroup"]
+    if is_group:
+        bot_username = f"@{context.bot.username}"
+        if bot_username not in update.message.text:
+            return  # Ignore messages in groups where bot isn't tagged
+
     session_id = f"tg_{update.effective_user.id}_{update.message.message_id}"
     await update.message.reply_chat_action("typing")
 
+    # Remove bot mention from message before sending to Alfred
+    message_text = update.message.text
+    if is_group and context.bot.username:
+        message_text = message_text.replace(f"@{context.bot.username}", "").strip()
+
     try:
         result = await call_alfred("/message", {
-            "message": update.message.text,
+            "message": message_text,
             "user_id": str(update.effective_user.id),
             "session_id": session_id,
         })
@@ -112,7 +126,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         await update.message.reply_text(
-            format_result(result.get("result", "Done.")) + f"\n\n_— {result.get('agent', 'alfred')}_",
+            format_result(result.get("result", "Done.")),
             parse_mode="Markdown"
         )
 
@@ -128,6 +142,80 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(f"Error: {e}")
 
 
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle fridge photos for inventory scanning"""
+    if not is_authorized(update.effective_user.id):
+        await update.message.reply_text("Unauthorized.")
+        return
+
+    await update.message.reply_chat_action("typing")
+    await update.message.reply_text("📸 Analyzing your fridge... This may take a moment.")
+
+    try:
+        # Get the largest photo size
+        photo = update.message.photo[-1]
+        photo_file = await photo.get_file()
+        
+        # Download photo as bytes
+        photo_bytes = await photo_file.download_as_bytearray()
+        
+        # Convert to base64
+        photo_base64 = base64.b64encode(photo_bytes).decode('utf-8')
+        
+        # Send to Alfred's vision endpoint
+        result = await call_alfred("/scan_fridge", {
+            "image_base64": photo_base64,
+            "user_id": str(update.effective_user.id),
+        })
+        
+        if result.get("status") == "awaiting_confirmation":
+            # Present inventory diff for confirmation
+            diff_text = format_inventory_diff(result.get("diff", {}))
+            keyboard = InlineKeyboardMarkup([[
+                InlineKeyboardButton("✅ Confirm", callback_data=f"confirm:{result['session_id']}"),
+                InlineKeyboardButton("❌ Cancel",  callback_data=f"cancel:{result['session_id']}"),
+            ]])
+            await update.message.reply_text(
+                f"*Detected changes:*\n\n{diff_text}\n\nConfirm to update inventory?",
+                reply_markup=keyboard, parse_mode="Markdown"
+            )
+        else:
+            await update.message.reply_text(result.get("message", "Photo processed."))
+            
+    except Exception as e:
+        log.error(f"Photo processing error: {e}")
+        await update.message.reply_text(f"Error processing photo: {e}")
+
+
+def format_inventory_diff(diff: dict) -> str:
+    """Format inventory diff for display"""
+    lines = []
+    
+    added = diff.get("added", [])
+    removed = diff.get("removed", [])
+    updated = diff.get("updated", [])
+    
+    if added:
+        lines.append("*Added:*")
+        for item in added:
+            lines.append(f"  + {item['name']} — {item['quantity']} {item.get('unit', '')}")
+    
+    if removed:
+        lines.append("\n*Removed:*")
+        for item in removed:
+            lines.append(f"  - {item['name']}")
+    
+    if updated:
+        lines.append("\n*Updated:*")
+        for item in updated:
+            old_qty = item.get('old_quantity', '?')
+            new_qty = item['quantity']
+            unit = item.get('unit', '')
+            lines.append(f"  ~ {item['name']}: {old_qty} → {new_qty} {unit}")
+    
+    return "\n".join(lines) if lines else "_No changes detected_"
+
+
 def run_bot():
     if not TELEGRAM_TOKEN:
         raise ValueError("TELEGRAM_TOKEN not set in .env")
@@ -135,6 +223,7 @@ def run_bot():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("status", status_command))
     app.add_handler(CommandHandler("inventory", inventory_command))
+    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(CallbackQueryHandler(handle_callback))
     log.info("Telegram bot polling...")

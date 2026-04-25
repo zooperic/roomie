@@ -20,10 +20,16 @@
 | Agent | Domain | Phase | Status |
 |-------|--------|-------|--------|
 | **Alfred** | Orchestrator — routes all intent, confirmation gate | 1 | ✅ Live |
-| **Elsa** | Fridge inventory, recipe parsing, order suggestions | 1 | ✅ Live |
-| **Remy** | Pantry / dry goods inventory | 2 | Stub |
+| **Elsa** | Fridge inventory — stock tracking, low stock alerts | 1 | ✅ Live |
+| **Remy** | Kitchen operations — recipe parsing, meal planning, pantry inventory | 2 | 📋 Scoped |
+| **Lebowski** | Procurement — catalog matching, cart building, order placement | 2 | 📋 Scoped |
 | **Finn** | Household spend analytics | 4 | Stub |
 | **Iris** | Smart home device control | 4 | Stub |
+
+### Recipe-to-Cart Flow (Target)
+User pastes recipe → Remy parses ingredients → asks Elsa (fridge) + self (pantry) → compiles missing items → hands to Lebowski → Lebowski matches to Swiggy catalog → builds cart → Alfred confirms with user.
+
+**Phase 1 shortcut:** Elsa handles recipe parsing directly as POC.
 
 ---
 
@@ -98,8 +104,9 @@ DATABASE_URL=sqlite:///./data/roomy.db
 roomie/
 ├── agent_skills/
 │   ├── alfred/        main.py, router.py, SKILLS.md
-│   ├── elsa/          main.py, SKILLS.md
-│   ├── remy/          SKILLS.md (stub)
+│   ├── elsa/          main.py, SKILLS.md (fridge inventory)
+│   ├── remy/          main.py, SKILLS.md (kitchen + pantry) — Phase 2
+│   ├── lebowski/      main.py, catalog_matcher.py, SKILLS.md (procurement) — Phase 2
 │   ├── finn/          SKILLS.md (stub)
 │   └── iris/          SKILLS.md (stub)
 ├── shared/            base_agent.py, models.py, llm_provider.py, db.py

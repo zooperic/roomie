@@ -17,6 +17,56 @@ Phase 0 complete. Phase 1 backend complete. Interfaces (Telegram, Dashboard) in 
 
 ---
 
+## Agents — Responsibility Matrix
+
+| Agent | Domain | Core Responsibilities | Phase |
+|-------|--------|----------------------|-------|
+| **Alfred** | Orchestration | Intent routing, multi-agent coordination, confirmation gate, session management | 1 ✅ |
+| **Elsa** | Fridge inventory | Stock tracking, low stock alerts, inventory queries, usage rate tracking | 1 ✅ |
+| **Remy** | Kitchen operations | Recipe parsing, meal planning, missing ingredient compilation, pantry inventory | 2 📋 |
+| **Lebowski** | Procurement | Catalog matching (Hinglish → SKU), pricing, cart building, order placement, price tracking | 2 📋 |
+| **Finn** | Analytics | Household spend, savings vs retail, purchase patterns, budget alerts | 4 🔜 |
+| **Iris** | Smart home | Device control, automation rules, energy monitoring | 4 🔜 |
+
+### Inter-Agent Communication Pattern
+
+**Recipe-to-Cart Flow (Target Architecture):**
+```
+User: "I want to make Paneer Lababdar tonight"
+  ↓
+Alfred: routes intent to Remy (kitchen domain)
+  ↓
+Remy: parses recipe → extracts ingredients
+  ↓ asks Elsa
+Elsa: "Here's what's in the fridge: paneer (200g), tomatoes (4)"
+  ↓ asks self (Remy's pantry)
+Remy: "Pantry has: onions, ginger. Missing: kasuri methi, cream"
+  ↓ compiles missing items
+Remy → Lebowski: "Need: kasuri methi (10g), cream (200ml)"
+  ↓
+Lebowski: matches to Swiggy catalog using Hinglish translation + IDF search
+          → "MDH Kasuri Methi 25g ₹35" + "Amul Fresh Cream 250ml ₹65"
+          → builds cart with pack-size rounding
+  ↓
+Lebowski → Alfred: cart ready for confirmation
+  ↓
+Alfred → User: "Cart ready: 2 items, ₹100. Confirm?"
+```
+
+**Phase 1 Shortcut (POC):**  
+Elsa handles recipe parsing directly (no Remy, no Lebowski) to validate the full flow.  
+Refactor in Phase 2 when Remy + Lebowski ship.
+
+**Catalog Matching Strategy (Lebowski):**  
+Inspired by [Recipe-to-Cart reference implementation](https://lnkd.in/gVwWnFJP):
+- Hinglish translation: `haldi → turmeric`, `kasuri methi → dried fenugreek leaves`
+- IDF-weighted token search across 200+ item catalog of real Indian brands
+- Pack-size rounding: recipe needs 10g kasuri methi → match 25g pack (smallest available)
+- Primary noun tiebreaking: "Amul butter" beats "Mother Dairy butter spread" for "butter"
+- No fuzzy-match library, no vendor lock-in — pure tokenization + scoring in ~100 lines
+
+---
+
 ## System Layers
 
 ```
@@ -38,12 +88,18 @@ Phase 0 complete. Phase 1 backend complete. Interfaces (Telegram, Dashboard) in 
 │   /        → serves dashboard.html (interim)        │
 └────────────┬────────────────────────────────────────┘
              │ in-process call (Phase 1)
+             │ HTTP call (Phase 2+)
              ▼                    
 ┌────────────────────┐   ┌──────────────────────────┐
-│  ELSA (:8001)      │   │  Future agents            │
-│  agent_skills/     │   │  register via             │
-│  elsa/main.py      │   │  register_agent()         │
-│  ElsaAgent class   │   │  no Alfred changes needed │
+│  ELSA (:8001)      │   │  REMY (:8002)            │
+│  Fridge inventory  │   │  Kitchen + pantry        │
+│  ✅ Phase 1        │   │  📋 Phase 2              │
+└────────────────────┘   └──────────────────────────┘
+
+┌────────────────────┐   ┌──────────────────────────┐
+│ LEBOWSKI (:8003)   │   │  Future agents           │
+│ Procurement        │   │  register via            │
+│ 📋 Phase 2         │   │  register_agent()        │
 └────────┬───────────┘   └──────────────────────────┘
          │
          ▼
@@ -51,7 +107,7 @@ Phase 0 complete. Phase 1 backend complete. Interfaces (Telegram, Dashboard) in 
 │                  STORAGE LAYER                      │
 │   SQLite: data/roomy.db                             │
 │   Tables: inventory, orders, agent_events,          │
-│           price_comparisons                         │
+│           price_comparisons, pantry_inventory       │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -80,9 +136,17 @@ Desktop/meh/roomie/
 │   │   ├── __init__.py
 │   │   ├── main.py             ← ElsaAgent implementation
 │   │   └── SKILLS.md
-│   ├── remy/   (stub)
-│   ├── finn/   (stub)
-│   └── iris/   (stub)
+│   ├── remy/                   ← Phase 2: Kitchen agent
+│   │   ├── __init__.py
+│   │   ├── main.py             ← Recipe parsing, meal planning, pantry
+│   │   └── SKILLS.md
+│   ├── lebowski/               ← Phase 2: Procurement agent
+│   │   ├── __init__.py
+│   │   ├── main.py             ← Catalog matching, cart building
+│   │   ├── catalog_matcher.py  ← Hinglish translation + IDF search
+│   │   └── SKILLS.md
+│   ├── finn/   (stub Phase 4)
+│   └── iris/   (stub Phase 4)
 │
 ├── shared/                     ← Contracts used by all agents
 │   ├── __init__.py

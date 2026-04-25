@@ -1,187 +1,226 @@
-# Roadmap — Project Roomy
+# Project Roadmap
 
-Last updated: April 2026
+## ✅ Phase 1: Multi-Agent Telegram Bot System (COMPLETE)
 
----
+**Status:** Working with polish items remaining
 
-## Status Legend
-- ✅ Done
-- 🔄 In progress
-- 📋 Scoped / next
-- 🔜 Planned
-- ❌ Not started
+### Achievements
+- 4 Telegram bots operational (Alfred, Elsa, Remy, Lebowski)
+- Force-agent routing with action classification
+- Greeting optimization (no LLM call)
+- Photo inventory scanning with vision LLM
+- Group chat support with @mention
+- Inventory add/check operations
 
----
+### Known Issues (FINAL_FIXES.md)
+- [ ] Math operations (add/set/subtract) - need 3 operation types
+- [ ] Image import error - InventoryDB → InventoryItemDB
+- [ ] JSON formatting - need format_result() update
+- [ ] Remove "— agent" signatures
+- [ ] Group chat case sensitivity
+- [ ] Model selection - use qwen2.5:7b for chat, qwen2.5vl:7b for photos
 
-## Phase 0 — Foundation ✅ COMPLETE
+**Estimated fix time:** 25 minutes
 
-- ✅ Monorepo structure (`agent_skills/`, `shared/`, `interfaces/`, `scripts/`)
-- ✅ `shared/base_agent.py` — BaseAgent contract
-- ✅ `shared/models.py` — AgentResponse, Intent, InventoryItem, SkillDefinition schemas
-- ✅ `shared/llm_provider.py` — Provider abstraction (Claude, OpenAI, Ollama) behind one function
-- ✅ `shared/db.py` — SQLite, all tables defined (inventory, orders, agent_events, price_comparisons)
-- ✅ `.env.example` — All environment variables documented
-- ✅ Planning docs: README, ARCHITECTURE, ROADMAP, HARDWARE_CHECKLIST
-- ✅ Agent SKILLS.md files: Alfred, Elsa, Remy (stub), Finn (stub), Iris (stub)
-- ✅ Alfred boots, registers Elsa, starts without errors
-- ✅ DB initializes correctly
+### Next Immediate Enhancements (Phase 1.5)
+- [ ] **Item expiry tracking** - Add expiry_date field to inventory
+  - Alert when items expire in <3 days
+  - Prioritize expiring items in meal suggestions
+  - Weekly "use soon" notifications
+  - Example: "Milk expires in 2 days, eggs in 5 days"
 
----
-
-## Phase 1 — Alfred + Elsa + Interfaces
-
-### Backend ✅ COMPLETE
-- ✅ Elsa fully implemented: check_inventory, update_inventory, low_stock_check, parse_recipe, suggest_order
-- ✅ Alfred intent routing — LLM classifies and dispatches to correct agent + skill
-- ✅ Alfred parameter extraction from natural language messages
-- ✅ Confirmation gate — requires_confirmation flow working end to end
-- ✅ End-to-end loop validated: natural language → Alfred → Elsa → DB → response
-
-### Telegram 🔄 IN PROGRESS
-- ✅ Bot created: `alfred_roomie_bot`
-- 📋 Add bot token to `.env` and test `/start`
-- 📋 Validate full conversation loop via Telegram
-- 📋 Test confirm/cancel inline buttons
-- 📋 Group chat support — bot responds when tagged in a group (`@alfred_roomie_bot`)
-
-### Dashboard 📋 SCOPED FOR P1
-Full dashboard to be built as a **Next.js project** in `roomie-web/`.
-
-**Views to build:**
-
-| View | Description | Priority |
-|------|-------------|----------|
-| **Overview** | Alfred + agent status, low stock alerts, pending confirmations banner | P1 |
-| **Inventory** | Live fridge items, stock bars, category filter, manual add/edit | P1 |
-| **Chat** | Full Alfred chat panel with confirm/cancel actions inline | P1 |
-| **Event Log** | Real-time agent activity feed (what each agent did and when) | P1 |
-| **Analytics** | Spend over time, most ordered items, savings vs retail | P1 (basic) |
-| **Task Board** | Pending actions per agent — Jira-style card view of what's queued | P1 |
-
-**Tech decisions:**
-- Next.js App Router in `roomie-web/`
-- Tailwind CSS — monochromatic design system
-- SWR for data fetching + auto-revalidation (no manual refresh needed)
-- shadcn/ui for base components — override with custom styles
-- No separate backend — dashboard calls Alfred's REST API directly
-
-**What analytics can show in P1** (without Finn, just from existing DB):
-- Items added/removed per day (from `agent_events`)
-- Order suggestions made and confirmed/cancelled ratio
-- Low stock frequency per item
-- Most commonly checked items
-
-Full spend analytics (₹ amounts, savings vs retail) come in Phase 2 when Swiggy MCP is live.
-
-
-### Elsa — Full Phase 1 Scope (Fridge Agent)
-
-#### Inventory Model
-Each fridge item tracks:
-- `name` — item name
-- `brand` — optional (e.g. Amul, Britannia)
-- `type` — category (dairy, produce, beverage, etc.)
-- `quantity` — numeric count
-- `volume` — size per unit (e.g. 1L, 500ml, 250g)
-- `is_purchasable` — bool: whether this goes through Swiggy pipeline
-- `container_label` — for home-cooked items (e.g. "Eric's Dal", "Eric's Chicken Curry")
-- `container_count` — number of containers for cooked food
-
-Home-cooked / curry items are tracked as named containers with a count only.
-Only `is_purchasable=True` items enter the Swiggy order pipeline.
-
-#### Input Methods
-Two ways to update Elsa's inventory:
-
-**1. Photo pipeline (primary)**
-- You click a photo of fridge contents (nightly or as needed)
-- Send photo to Alfred via Telegram or dashboard upload
-- Vision LLM (`qwen2.5vl:7b` — already available locally) analyses contents
-- Elsa calculates delta: what appeared, what disappeared vs last known state
-- Delta presented to you for review before DB is updated
-- You can manually override any item in the diff (name, quantity, volume, brand)
-- Confirmed diff written to inventory
-
-**2. Manual text input**
-- Tell Alfred directly: "add 2L Amul milk", "I finished the curd"
-- Elsa updates DB immediately, no confirmation needed for local writes
-
-#### Routine Purchases
-- Set recurring purchase rules per item: "buy milk every 5 days" or "reorder when quantity < 1"
-- Elsa checks rules daily and surfaces due items as a suggested cart
-- You confirm once → Swiggy order placed
-- Manual one-off orders also supported: "order X from InstaMart now"
-
-#### Pricing Intelligence (Dashboard Analytics)
-Per purchasable item, Elsa tracks and displays:
-- Price history over time (fetched from Swiggy MCP each time item is ordered or checked)
-- Best time to buy — day-of-week or time-of-day pricing patterns
-- Estimated days remaining based on current quantity + average usage rate
-- Suggested reorder date: when to buy next given usage + price trend
-- Cost per unit trend — flag when price spikes above 30-day average
-
-Dashboard view: per-item pricing chart (line graph, price over time) + usage vs stock overlay.
-
-#### Phase 1 Limitation (honest)
-- Photo pipeline requires vision LLM. `qwen2.5vl:7b` is available locally but accuracy on fridge photos with mixed items varies. Expect manual corrections frequently until Phase 3 hardware (fixed camera angle, controlled lighting) improves consistency.
-- Pricing trends need at least 2–3 weeks of order data before patterns are meaningful.
-- Swiggy MCP pricing is Phase 2. Phase 1 pricing chart uses placeholder / manually entered prices.
-
+- [ ] **Intent-based photo captions** - Use caption to determine operation
+  - "Adding these" → Add detected items to inventory
+  - "Using these" / "Took these" → Subtract from inventory
+  - "Scan everything" / No caption → Full inventory sync (current behavior)
+  - Reduces LLM complexity for simple operations
+  - Example: Send photo + "Using these" → Only subtracts detected items
 
 ---
 
-### Exit Criteria for Phase 1 Complete
-- [ ] Can add items, query fridge, get low stock alerts via Telegram
-- [ ] Can share a recipe link → get missing ingredients → confirm order suggestion via Telegram
-- [ ] Group chat: tag @alfred_roomie_bot in a group, get a response
-- [ ] Dashboard: all 6 views functional, pulling live data from Alfred API
-- [ ] Dashboard: chat panel works, confirm/cancel buttons function
-- [ ] Dashboard: deployed to Vercel (free) for always-on access, Alfred stays local
+## 🔄 Phase 2: Recipe & Procurement (NEXT SESSION)
+
+**Goal:** Recipe → Missing ingredients → Swiggy cart (all in Telegram)  
+**Estimated time:** 6-7 hours
+
+### 2.1 Remy Agent - Recipe Parsing (2-3 hours)
+**Features:**
+- Parse recipe from URL (web_fetch → LLM extract)
+- Parse recipe from copy-paste text
+- Parse recipe from dish name (web_search → fetch → parse)
+- Check Elsa for available ingredients
+- Return missing items list
+
+**Example:**
+```
+User: "Can I make this? https://recipe.com/pasta"
+Remy: "Spaghetti Carbonara needs:
+       ✅ Have: eggs (10), bacon (200g), parmesan
+       ❌ Need: spaghetti (500g), black pepper (50g)"
+```
+
+**Files:**
+- `agent_skills/remy/main.py` - New agent implementation
+- `agent_skills/remy/skills.py` - Recipe parsing skills
+- Register with Alfred on startup
 
 ---
 
-## Phase 2 — Real Orders + Remy
+### 2.2 Lebowski Agent - Catalog Matching (3-4 hours)
+**Features:**
+- Hinglish translation (haldi → turmeric)
+- IDF-weighted catalog search (~100 lines)
+- Pack size rounding (need 50g → match 100g pack)
+- SKU matching to Swiggy Instamart
+- Cart building with prices
 
-- [ ] Swiggy MCP integration in Elsa — real prices, real order placement on confirmation
-- [ ] Price comparison across platforms (InstaMart vs Blinkit)
-- [ ] Remy agent — pantry/dry goods inventory (same pattern as Elsa)
-- [ ] Alfred multi-agent queries — aggregates Elsa + Remy for combined shopping list
-- [ ] Alfred persistent memory — dietary preferences, saved delivery address
-- [ ] Dashboard analytics: real spend data, price trend charts, savings tracker
-- [ ] Separate agent bots (elsa_roomie_bot etc.) — direct access bypassing Alfred
-  - Refactor `TELEGRAM_TOKEN` → `TELEGRAM_TOKEN_ALFRED`, add `TELEGRAM_TOKEN_ELSA`, `TELEGRAM_TOKEN_REMY`
-  - Split `interfaces/telegram/bot.py` → `alfred_bot.py`, `elsa_bot.py`, `base_bot.py` (shared logic)
-  - `start_dev.sh` skips bots with blank tokens silently
+**Strategy:** 
+- No fuzzy-match libraries (vendor lock-in)
+- Simple token search + primary noun tiebreaking
+- Hinglish dictionary JSON (curated list)
 
----
+**Example:**
+```
+Remy: "Need: spaghetti (500g), black pepper (50g)"
+Lebowski: "Found on Instamart:
+           • Barilla Spaghetti 500g - ₹180
+           • Catch Black Pepper 100g - ₹95
+           Total: ₹275"
+User: "Add to cart"
+Lebowski: "Cart ready. Confirm order? (₹275 + delivery)"
+```
 
-## Phase 3 — Hardware (Fridge Camera)
-
-- [ ] ESP32-CAM hardware setup (see HARDWARE_CHECKLIST.md)
-- [ ] Vision LLM integration — `qwen2.5vl:7b` already available on Ollama
-- [ ] MQTT bridge for hardware events
-- [ ] Elsa `/scan` endpoint — image → inventory diff → confirmation
-- [ ] Scheduled scans
-
----
-
-## Phase 4 — New Agents + Scale
-
-- [ ] Finn — household spend analytics agent
-- [ ] Iris — smart home device control (requires hardware)
-- [ ] SQLite → PostgreSQL migration if needed
-- [ ] VPS deployment (Hetzner CX11 ~₹500/mo) when local isn't enough
+**Files:**
+- `agent_skills/lebowski/main.py` - Catalog matching agent
+- `agent_skills/lebowski/hinglish_dict.json` - Translation dictionary
+- `agent_skills/lebowski/catalog.py` - Search logic
 
 ---
 
-## Agent Bot Strategy
+### 2.3 Meal Planning (Remy Extension) (1-2 hours)
+**Features:**
+- Weekly meal suggestions based on fridge inventory
+- Optimize for minimal new purchases
+- Balance nutrition + variety
 
-Each agent can have its own Telegram bot for direct access:
+**Example:**
+```
+User: "Plan this week's dinners"
+Remy: "Based on your fridge:
+       Mon: Pasta carbonara (have eggs, bacon, need pasta)
+       Tue: Stir-fry (have veggies, need soy sauce)
+       Wed: Omelette (have eggs, cheese)
+       
+       Missing for week: pasta, soy sauce (₹200 total)"
+```
 
-| Bot | Talks to | When to create |
-|-----|---------|----------------|
-| `alfred_roomie_bot` ✅ | Alfred (all agents) | Phase 1 — primary interface |
-| `elsa_roomie_bot` | Elsa directly | Phase 2 — when you want fridge queries without Alfred routing |
-| `remy_roomie_bot` | Remy directly | Phase 2 — alongside Remy agent |
+---
 
-Direct agent bots bypass Alfred's LLM routing call — cheaper and faster for simple queries you know the destination of.
+### End-to-End Test (30 min)
+1. User shares recipe URL → Remy parses
+2. Remy checks Elsa for availability → Returns missing items
+3. User: "Order missing items" → Lebowski matches catalog
+4. Lebowski presents cart → User confirms
+5. Order placed via Swiggy API (or manual for now)
+
+**Phase 2 Complete:** Recipe-to-cart workflow functional in Telegram
+
+---
+
+## 🌐 Phase 3: Next.js Web Dashboard (After Phase 2)
+
+**When:** Once all agents work end-to-end in Telegram  
+**Why:** Backend API exists, just need frontend UI  
+**Estimated time:** 4-6 hours
+
+### Features
+1. **Dashboard** - Fridge inventory, recent events, low stock alerts
+2. **Recipe Search** - URL input → ingredient check → cart
+3. **Shopping Cart** - Review items, prices before ordering
+4. **Meal Planner** - Calendar view, drag-drop meals
+
+### Tech Stack
+- Next.js 14 (App Router)
+- Tailwind CSS + shadcn/ui
+- Connects to Alfred API (:8000)
+
+### Architecture
+```
+Next.js Frontend (:3000)
+       ↓
+  Alfred API (:8000)
+       ↓
+  Agents (Elsa, Remy, Lebowski)
+```
+
+**Phase 3 Complete:** Web + Telegram interfaces both working
+
+---
+
+## 🔌 Phase 4: Hardware Integration (Future)
+
+**Features:**
+- Raspberry Pi with weight sensors
+- Barcode scanner for quick add
+- RFID tags for containers
+- Auto-detect when items run low
+
+**Hardware:**
+- Load cells (HX711) for weight
+- USB barcode scanner
+- Camera module for OCR
+- LED indicators
+
+**Estimated time:** 8-10 hours (hardware setup + software integration)
+
+---
+
+## 🚀 Phase 5: Deployment & Polish (Future)
+
+**Features:**
+- Alfred API on cloud (Railway/Render)
+- Telegram bots running 24/7
+- Database migration to PostgreSQL
+- Webhook mode for Telegram (instead of polling)
+- Monitoring & logging
+- Budget tracking & analytics
+
+**Estimated time:** 4-6 hours
+
+---
+
+## Current Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                   INTERFACES                     │
+├─────────────────────────────────────────────────┤
+│  Telegram Bots          │  Next.js Web (Phase 3)│
+│  • Alfred (orchestrator)│  • Dashboard           │
+│  • Elsa (fridge) ✅     │  • Recipe Search       │
+│  • Remy (kitchen) 🔄    │  • Meal Planner       │
+│  • Lebowski (shop) 🔄   │  • Shopping Cart      │
+└──────────────┬──────────┴───────────────────────┘
+               │
+         Alfred API (:8000)
+               │
+        ┌──────┴──────┐
+        │   Agents    │
+        ├─────────────┤
+        │ • Elsa ✅   │
+        │ • Remy 🔄   │ ← Phase 2
+        │ • Lebowski🔄│ ← Phase 2
+        └─────────────┘
+```
+
+---
+
+## Timeline Estimate
+
+- **Phase 1:** ✅ Complete (Telegram bots + Elsa agent)
+- **Phase 2:** 1 session (~6-7 hours) - Recipe + procurement
+- **Phase 3:** 1 session (~4-6 hours) - Next.js dashboard
+- **Phase 4:** Optional - Hardware integration
+- **Phase 5:** 1 session (~4-6 hours) - Deployment
+
+**Total to working MVP:** 2-3 sessions (~15-20 hours)
