@@ -24,6 +24,7 @@
 
 ### Next Immediate Enhancements (Phase 1.5)
 - [ ] **Item expiry tracking** - Add expiry_date field to inventory
+- [ ] **Natural language improvements** - Less rigid interaction
   - Alert when items expire in <3 days
   - Prioritize expiring items in meal suggestions
   - Weekly "use soon" notifications
