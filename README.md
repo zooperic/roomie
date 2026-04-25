@@ -1,6 +1,6 @@
-# 🏠 Project Roomy
+# 🏠 Project R.O.O.M.I.E
 
-> A modular multi-agent home assistant. Each agent owns a domain of your home. Alfred ties them together.
+> A modular multi-agent home assistant. Each agent owns a domain of your home. Alfred ties them together (Random Operators On My Individual Errands)
 
 ---
 
@@ -27,7 +27,7 @@
 
 ---
 
-## How to Talk to Roomy
+## How to Talk to Roomie
 
 - **Telegram** — Primary interface. Message `@alfred_roomie_bot` directly, or tag it in a group.
 - **Web Dashboard** — Inventory, event log, analytics, task board, chat panel.
