@@ -221,14 +221,6 @@ DATABASE_URL=sqlite:///./data/roomy.db
 
 ---
 
-## 🙏 Credits
-
-**Built by:** Eric Brian  
-**AI Assistance:** Claude (Anthropic)  
-**Integrations:** Swiggy MCP, Telegram  
-
----
-
 **ROOMIE - Making kitchen management intelligent, one agent at a time.** 🏠🤖
 
 **Status:** ✅ Production Ready | **Version:** Phase 3 Complete | **April 2026**
