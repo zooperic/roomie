@@ -263,17 +263,6 @@ DATABASE_URL=sqlite:///./data/roomy.db
     </div>
   </div>
 
-  <!-- Navigation -->
-  <div class="roomie-nav">
-    <label for="roomie-slide-1">Dashboard</label>
-    <label for="roomie-slide-2">Agents</label>
-    <label for="roomie-slide-3">Analytics</label>
-    <label for="roomie-slide-4">Cart</label>
-    <label for="roomie-slide-5">Chat</label>
-    <label for="roomie-slide-6">Events</label>
-    <label for="roomie-slide-7">Inventory</label>
-  </div>
-
 </div>
 
 </div>
