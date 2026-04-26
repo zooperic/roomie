@@ -5,7 +5,7 @@
 A complete multi-agent AI system for intelligent kitchen management, recipe parsing, and automated grocery procurement.
 
 **Version:** Phase 3 Complete  
-**Status:** ✅ Production Ready  
+**Status:** ✅ In Dev
 **Last Updated:** April 26, 2026
 
 ---
@@ -231,47 +231,6 @@ DATABASE_URL=sqlite:///./data/roomy.db
 
 <div align="center">
 
-<style>
-.roomie-carousel {
-  max-width: 900px;
-  margin: 0 auto;
-  position: relative;
-}
-.roomie-slide {
-  display: none;
-}
-.roomie-slide img {
-  width: 100%;
-  border-radius: 8px;
-}
-.roomie-caption {
-  margin-top: 8px;
-  font-style: italic;
-  color: #555;
-}
-.roomie-nav {
-  margin-top: 12px;
-}
-.roomie-nav label {
-  display: inline-block;
-  margin: 0 4px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: #eee;
-  font-size: 12px;
-}
-#roomie-slide-1:checked ~ .roomie-slides #roomie-slide-1-content,
-#roomie-slide-2:checked ~ .roomie-slides #roomie-slide-2-content,
-#roomie-slide-3:checked ~ .roomie-slides #roomie-slide-3-content,
-#roomie-slide-4:checked ~ .roomie-slides #roomie-slide-4-content,
-#roomie-slide-5:checked ~ .roomie-slides #roomie-slide-5-content,
-#roomie-slide-6:checked ~ .roomie-slides #roomie-slide-6-content,
-#roomie-slide-7:checked ~ .roomie-slides #roomie-slide-7-content {
-  display: block;
-}
-</style>
-
 <div class="roomie-carousel">
 
   <!-- Radios -->
@@ -286,27 +245,21 @@ DATABASE_URL=sqlite:///./data/roomy.db
   <div class="roomie-slides">
     <div class="roomie-slide" id="roomie-slide-2-content">
       <img src="assets/agents.png" alt="Agents tab">
-      <div class="roomie-caption">ROOMIES tab with all six agents and their personalities.</div>
     </div>
     <div class="roomie-slide" id="roomie-slide-3-content">
       <img src="assets/analytics.png" alt="Analytics tab">
-      <div class="roomie-caption">Analytics tab showing stock health, category charts and insights.</div>
     </div>
     <div class="roomie-slide" id="roomie-slide-4-content">
       <img src="assets/cart.png" alt="Shopping cart tab">
-      <div class="roomie-caption">Shopping tab building Instamart carts with real-time pricing.</div>
     </div>
     <div class="roomie-slide" id="roomie-slide-5-content">
       <img src="assets/chat.png" alt="Chat tab">
-      <div class="roomie-caption">Chat tab where you talk to Alfred, Remy, Lebowski and the gang.</div>
     </div>
     <div class="roomie-slide" id="roomie-slide-6-content">
       <img src="assets/event-log.png" alt="Event log tab">
-      <div class="roomie-caption">Events tab logging inventory updates, scans and agent actions.</div>
     </div>
     <div class="roomie-slide" id="roomie-slide-7-content">
       <img src="assets/inventory.png" alt="Inventory tab">
-      <div class="roomie-caption">Inventory tab with fridge and pantry CRUD in one place.</div>
     </div>
   </div>
 
