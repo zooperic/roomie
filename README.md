@@ -275,7 +275,6 @@ DATABASE_URL=sqlite:///./data/roomy.db
 <div class="roomie-carousel">
 
   <!-- Radios -->
-  <input type="radio" name="roomie-slides" id="roomie-slide-1" checked style="display:none;">
   <input type="radio" name="roomie-slides" id="roomie-slide-2" style="display:none;">
   <input type="radio" name="roomie-slides" id="roomie-slide-3" style="display:none;">
   <input type="radio" name="roomie-slides" id="roomie-slide-4" style="display:none;">
@@ -285,32 +284,28 @@ DATABASE_URL=sqlite:///./data/roomy.db
 
   <!-- Slides -->
   <div class="roomie-slides">
-    <div class="roomie-slide" id="roomie-slide-1-content">
-      <img src="assets/dashboard.html" alt="ROOMIE dashboard HTML export">
-      <div class="roomie-caption">Static dashboard export showing the full ROOMIE layout.</div>
-    </div>
     <div class="roomie-slide" id="roomie-slide-2-content">
-      <img src="assets/agents/agents.png" alt="Agents tab">
+      <img src="assets/agents.png" alt="Agents tab">
       <div class="roomie-caption">ROOMIES tab with all six agents and their personalities.</div>
     </div>
     <div class="roomie-slide" id="roomie-slide-3-content">
-      <img src="assets/analytics/analytics.png" alt="Analytics tab">
+      <img src="assets/analytics.png" alt="Analytics tab">
       <div class="roomie-caption">Analytics tab showing stock health, category charts and insights.</div>
     </div>
     <div class="roomie-slide" id="roomie-slide-4-content">
-      <img src="assets/cart/cart.png" alt="Shopping cart tab">
+      <img src="assets/cart.png" alt="Shopping cart tab">
       <div class="roomie-caption">Shopping tab building Instamart carts with real-time pricing.</div>
     </div>
     <div class="roomie-slide" id="roomie-slide-5-content">
-      <img src="assets/chat/chat.png" alt="Chat tab">
+      <img src="assets/chat.png" alt="Chat tab">
       <div class="roomie-caption">Chat tab where you talk to Alfred, Remy, Lebowski and the gang.</div>
     </div>
     <div class="roomie-slide" id="roomie-slide-6-content">
-      <img src="assets/event log/event-log.png" alt="Event log tab">
+      <img src="assets/event-log.png" alt="Event log tab">
       <div class="roomie-caption">Events tab logging inventory updates, scans and agent actions.</div>
     </div>
     <div class="roomie-slide" id="roomie-slide-7-content">
-      <img src="assets/inventory/inventory.png" alt="Inventory tab">
+      <img src="assets/inventory.png" alt="Inventory tab">
       <div class="roomie-caption">Inventory tab with fridge and pantry CRUD in one place.</div>
     </div>
   </div>
