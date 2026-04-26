@@ -77,23 +77,10 @@ class BaseAgentBot:
                     lines.append(f"• {item['name']}: {item['quantity']} {item.get('unit', 'units')}")
                 return "\n".join(lines)
             
-            # Fallback for other dicts
+            # Fallback for other dicts - just stringify
             return str(result)
         
-        return str(result)
-        """Format agent response for display"""
-        if isinstance(result, dict):
-            # Handle inventory check response
-            if "found" in result:
-                items = result["found"]
-                if not items:
-                    return "Fridge is empty."
-                lines = ["📦 *Fridge Inventory:*\n"]
-                for item in items:
-                    lines.append(f"• {item['name']}: {item['quantity']} {item['unit']}")
-                return "\n".join(lines)
-            # Handle other dict responses
-            return str(result)
+        # For non-dict results (strings, numbers), return as-is
         return str(result)
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -62,18 +62,7 @@ Never make up agent names. Only use agents listed above.
 
 
 async def route_intent(raw_message: str, user_id: str = "default") -> Intent:
-    # Handle simple greetings without LLM call
-    message_lower = raw_message.lower().strip()
-    greetings = ["hi", "hello", "hey", "howdy", "sup", "what's up", "whats up", "yo", "hiya"]
-    if message_lower in greetings:
-        return Intent(
-            raw_message=raw_message,
-            target_agent="alfred",
-            action="greet",
-            parameters={},
-            user_id=user_id
-        )
-    
+    """Route user message to appropriate agent with natural LLM-based classification"""
     agent_context = build_routing_context()
     system = ROUTING_SYSTEM_PROMPT.format(agent_context=agent_context)
 
@@ -82,6 +71,7 @@ async def route_intent(raw_message: str, user_id: str = "default") -> Intent:
         system=system,
         json_mode=True,
         max_tokens=512,
+        task_type="chat",  # Use chat model for routing
     )
 
     try:
@@ -105,23 +95,7 @@ async def route_intent(raw_message: str, user_id: str = "default") -> Intent:
 
 
 async def dispatch(intent: Intent):
-    # Handle greetings from Alfred
-    if intent.action == "greet":
-        import random
-        from shared.models import AgentResponse, ActionType
-        greetings = [
-            "Hey there! 👋 How can I help you today?",
-            "Hello! What can I do for you?",
-            "Hi! Ready to help with your fridge, shopping, or cooking.",
-        ]
-        return AgentResponse(
-            agent="alfred",
-            result=random.choice(greetings),
-            action_type=ActionType.INFORM,
-            requires_confirmation=False,
-            confidence=1.0
-        )
-    
+    """Dispatch intent to appropriate agent - no hardcoded responses"""
     agent = AGENT_REGISTRY.get(intent.target_agent)
 
     if agent is None:

@@ -79,6 +79,7 @@ Remy: "Spaghetti Carbonara needs:
 - No fuzzy-match libraries (vendor lock-in)
 - Simple token search + primary noun tiebreaking
 - Hinglish dictionary JSON (curated list)
+- **Mock Swiggy MCP** for development (real integration when credentials available)
 
 **Example:**
 ```
@@ -94,7 +95,9 @@ Lebowski: "Cart ready. Confirm order? (₹275 + delivery)"
 **Files:**
 - `agent_skills/lebowski/main.py` - Catalog matching agent
 - `agent_skills/lebowski/hinglish_dict.json` - Translation dictionary
-- `agent_skills/lebowski/catalog.py` - Search logic
+- `agent_skills/lebowski/mock_catalog.json` - Mock Swiggy catalog
+
+**Note:** Currently using mock MCP - switch to real Swiggy credentials when available
 
 ---
 
@@ -114,6 +117,51 @@ Remy: "Based on your fridge:
        
        Missing for week: pasta, soy sauce (₹200 total)"
 ```
+
+---
+
+### 2.4 Multi-Platform Comparison (Future Enhancement)
+**Goal:** Compare prices across Swiggy Instamart, Zomato, and Zepto  
+**Estimated time:** 2-3 hours per platform
+
+**Features:**
+- **Zomato MCP Integration** - Access Zomato Instamart catalog and pricing
+- **Zepto MCP Integration** - Access Zepto catalog and pricing
+- **Price Comparison** - Side-by-side comparison across platforms
+- **Best Deal Recommendation** - Highlight cheapest option per item
+- **Platform Switching** - Allow user to select preferred platform
+
+**Example:**
+```
+User: "Compare prices for milk and eggs"
+Lebowski: "Price comparison across platforms:
+           
+           Amul Milk 1L:
+           • Swiggy: ₹60 (15min delivery)
+           • Zomato: ₹58 (12min delivery) ✅ Cheapest
+           • Zepto: ₹62 (10min delivery)
+           
+           Eggs (6pc):
+           • Swiggy: ₹42 (15min) ✅ Cheapest
+           • Zomato: ₹45 (12min)
+           • Zepto: ₹44 (10min)
+           
+           Recommendation: Order milk from Zomato, eggs from Swiggy
+           Total savings: ₹5"
+```
+
+**Implementation Strategy:**
+- Same catalog matching logic for all platforms
+- Standardize product data across platforms
+- Cache catalog data to minimize API calls
+- Let user set platform preferences (default, preferred brands)
+
+**Files:**
+- `agent_skills/lebowski/zomato_mcp.py` - Zomato MCP client
+- `agent_skills/lebowski/zepto_mcp.py` - Zepto MCP client
+- `agent_skills/lebowski/price_comparator.py` - Multi-platform comparison logic
+
+**Note:** Implement after Swiggy integration is stable. Check for Zomato & Zepto MCP availability.
 
 ---
 

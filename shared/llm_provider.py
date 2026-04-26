@@ -8,13 +8,39 @@ load_dotenv()
 
 PROVIDER = os.getenv("LLM_PROVIDER", "ollama").lower()
 
+# Model routing for different task types (Ollama only)
+MODEL_ROUTING = {
+    "chat": "qwen2.5:7b",           # General conversation
+    "vision": "qwen2.5vl:7b",        # Photo analysis
+    "code": "qwen2.5-coder:7b",      # Code generation
+    "reasoning": "deepseek-r1:8b",   # Complex reasoning
+    "fast": "mistral:7b",   # Quick responses
+}
+
 MODEL_DEFAULTS = {
     "claude": "claude-haiku-4-5-20251001",
     "openai": "gpt-4o-mini",
-    "ollama": os.getenv("OLLAMA_MODEL", "qwen2.5:7b"),
+    "ollama": os.getenv("OLLAMA_MODEL", MODEL_ROUTING["chat"]),
 }
 
-ACTIVE_MODEL = os.getenv("LLM_MODEL") or MODEL_DEFAULTS.get(PROVIDER, "qwen2.5:7b")
+ACTIVE_MODEL = os.getenv("LLM_MODEL") or MODEL_DEFAULTS.get(PROVIDER, MODEL_ROUTING["chat"])
+
+
+def select_model(task_type: str = "chat") -> str:
+    """
+    Intelligently select model based on task type.
+    Only applies to Ollama provider - Claude/OpenAI use their defaults.
+    
+    Args:
+        task_type: One of "chat", "vision", "code", "reasoning", "fast"
+    
+    Returns:
+        Model name string
+    """
+    if PROVIDER != "ollama":
+        return ACTIVE_MODEL
+    
+    return MODEL_ROUTING.get(task_type, MODEL_ROUTING["chat"])
 
 
 async def get_llm_response(
@@ -24,18 +50,33 @@ async def get_llm_response(
     max_tokens: int = 1024,
     image_base64: Optional[str] = None,
     image_media_type: str = "image/jpeg",
+    task_type: str = "chat",  # New parameter for model routing
 ) -> str:
+    """
+    Get LLM response with intelligent model selection.
+    
+    Args:
+        task_type: One of "chat", "vision", "code", "reasoning", "fast"
+                   Only affects Ollama - Claude/OpenAI use their defaults
+    """
+    # Use vision model if image is provided
+    if image_base64:
+        task_type = "vision"
+    
+    # Select appropriate model
+    model_to_use = select_model(task_type)
+    
     if PROVIDER == "claude":
-        return await _call_claude(prompt, system, json_mode, max_tokens, image_base64, image_media_type)
+        return await _call_claude(prompt, system, json_mode, max_tokens, image_base64, image_media_type, model_to_use)
     elif PROVIDER == "openai":
-        return await _call_openai(prompt, system, json_mode, max_tokens, image_base64, image_media_type)
+        return await _call_openai(prompt, system, json_mode, max_tokens, image_base64, image_media_type, model_to_use)
     elif PROVIDER == "ollama":
-        return await _call_ollama(prompt, system, json_mode, max_tokens)
+        return await _call_ollama(prompt, system, json_mode, max_tokens, model_to_use)
     else:
         raise ValueError(f"Unknown LLM_PROVIDER: {PROVIDER}. Must be claude | openai | ollama")
 
 
-async def _call_claude(prompt, system, json_mode, max_tokens, image_base64, image_media_type):
+async def _call_claude(prompt, system, json_mode, max_tokens, image_base64, image_media_type, model):
     import anthropic
     client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     content: list = []
@@ -46,7 +87,7 @@ async def _call_claude(prompt, system, json_mode, max_tokens, image_base64, imag
         })
     content.append({"type": "text", "text": prompt})
     kwargs = {
-        "model": ACTIVE_MODEL,
+        "model": model,
         "max_tokens": max_tokens,
         "messages": [{"role": "user", "content": content}],
     }
@@ -58,7 +99,7 @@ async def _call_claude(prompt, system, json_mode, max_tokens, image_base64, imag
     return response.content[0].text
 
 
-async def _call_openai(prompt, system, json_mode, max_tokens, image_base64, image_media_type):
+async def _call_openai(prompt, system, json_mode, max_tokens, image_base64, image_media_type, model):
     from openai import AsyncOpenAI
     client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     messages = []
@@ -74,17 +115,17 @@ async def _call_openai(prompt, system, json_mode, max_tokens, image_base64, imag
         })
     user_content.append({"type": "text", "text": prompt})
     messages.append({"role": "user", "content": user_content})
-    kwargs = {"model": ACTIVE_MODEL, "max_tokens": max_tokens, "messages": messages}
+    kwargs = {"model": model, "max_tokens": max_tokens, "messages": messages}
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
     response = await client.chat.completions.create(**kwargs)
     return response.choices[0].message.content
 
 
-async def _call_ollama(prompt, system, json_mode, max_tokens, *_):
+async def _call_ollama(prompt, system, json_mode, max_tokens, model):
     ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
     payload = {
-        "model": ACTIVE_MODEL,
+        "model": model,
         "prompt": prompt,
         "stream": False,
         "options": {"num_predict": max_tokens},
@@ -95,6 +136,8 @@ async def _call_ollama(prompt, system, json_mode, max_tokens, *_):
         payload["system"] = system
     if json_mode:
         payload["format"] = "json"
+    
+    print(f"[LLM] Using model: {model}")
     async with httpx.AsyncClient(timeout=60.0) as client:
         response = await client.post(f"{ollama_url}/api/generate", json=payload)
         response.raise_for_status()
@@ -105,9 +148,10 @@ async def call_llm_vision(prompt: str, image_base64: str, system: Optional[str] 
     """Call vision-enabled LLM for image analysis"""
     if PROVIDER == "ollama":
         # Use qwen2.5vl:7b for vision with Ollama
+        vision_model = MODEL_ROUTING["vision"]
         ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
         payload = {
-            "model": "qwen2.5vl:7b",
+            "model": vision_model,
             "prompt": prompt,
             "images": [image_base64],
             "stream": False,
@@ -115,19 +159,19 @@ async def call_llm_vision(prompt: str, image_base64: str, system: Optional[str] 
         }
         if system:
             payload["system"] = system
+        
+        print(f"[VISION] Using model: {vision_model}")
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(f"{ollama_url}/api/generate", json=payload)
             response.raise_for_status()
-            # At the end of call_llm_vision, before return
-            print(f"\n[VISION DEBUG] Raw output:\n{result}\n")
+            result = response.json()["response"]
+            print(f"[VISION] Detected items from image")
             return result
-            return response.json()["response"]
     else:
         # Use standard call for Claude/OpenAI (they support vision natively)
-        # At the end of call_llm_vision, before return
-        print(f"\n[VISION DEBUG] Raw output:\n{result}\n")
+        result = await get_llm_response(prompt, system, json_mode=True, max_tokens=2048, image_base64=image_base64, task_type="vision")
+        print(f"[VISION] Processed image via {PROVIDER}")
         return result
-        return await get_llm_response(prompt, system, json_mode=True, max_tokens=2048, image_base64=image_base64)
 
 
 def parse_json_response(raw: str) -> dict:

@@ -14,8 +14,15 @@ from agent_skills.alfred.router import route_intent, dispatch, register_agent
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    # Register agents
+    from agent_skills.alfred.agent import AlfredAgent
     from agent_skills.elsa.main import ElsaAgent
+    from agent_skills.remy.main import RemyAgent
+    from agent_skills.lebowski.main import LebowskiAgent
+    register_agent(AlfredAgent())
     register_agent(ElsaAgent())
+    register_agent(RemyAgent())
+    register_agent(LebowskiAgent())
     print("[Alfred] Online. All agents registered.")
     yield
     print("[Alfred] Shutting down.")

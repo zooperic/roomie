@@ -1,0 +1,342 @@
+[
+  {
+    "sku": "AMUL-MILK-1L",
+    "name": "Amul Taaza Toned Milk",
+    "brand": "Amul",
+    "category": "dairy",
+    "weight": 1,
+    "unit": "l",
+    "price": 60,
+    "aliases": ["milk", "doodh", "taaza milk"]
+  },
+  {
+    "sku": "AMUL-BUTTER-100G",
+    "name": "Amul Salted Butter",
+    "brand": "Amul",
+    "category": "dairy",
+    "weight": 100,
+    "unit": "g",
+    "price": 60,
+    "aliases": ["butter", "makhan"]
+  },
+  {
+    "sku": "AMUL-CREAM-250ML",
+    "name": "Amul Fresh Cream",
+    "brand": "Amul",
+    "category": "dairy",
+    "weight": 250,
+    "unit": "ml",
+    "price": 65,
+    "aliases": ["cream", "fresh cream"]
+  },
+  {
+    "sku": "AMUL-PANEER-200G",
+    "name": "Amul Paneer",
+    "brand": "Amul",
+    "category": "dairy",
+    "weight": 200,
+    "unit": "g",
+    "price": 90,
+    "aliases": ["paneer", "cottage cheese"]
+  },
+  {
+    "sku": "MOTHER-DAHI-400G",
+    "name": "Mother Dairy Dahi",
+    "brand": "Mother Dairy",
+    "category": "dairy",
+    "weight": 400,
+    "unit": "g",
+    "price": 35,
+    "aliases": ["dahi", "curd", "yogurt"]
+  },
+  {
+    "sku": "MDH-HALDI-100G",
+    "name": "MDH Turmeric Powder",
+    "brand": "MDH",
+    "category": "spices",
+    "weight": 100,
+    "unit": "g",
+    "price": 50,
+    "aliases": ["turmeric", "haldi", "turmeric powder"]
+  },
+  {
+    "sku": "MDH-DHANIYA-100G",
+    "name": "MDH Coriander Powder",
+    "brand": "MDH",
+    "category": "spices",
+    "weight": 100,
+    "unit": "g",
+    "price": 45,
+    "aliases": ["coriander powder", "dhaniya powder"]
+  },
+  {
+    "sku": "MDH-JEERA-100G",
+    "name": "MDH Cumin Powder",
+    "brand": "MDH",
+    "category": "spices",
+    "weight": 100,
+    "unit": "g",
+    "price": 55,
+    "aliases": ["cumin powder", "jeera powder"]
+  },
+  {
+    "sku": "MDH-KASURI-25G",
+    "name": "MDH Kasuri Methi",
+    "brand": "MDH",
+    "category": "spices",
+    "weight": 25,
+    "unit": "g",
+    "price": 35,
+    "aliases": ["kasuri methi", "dried fenugreek leaves", "methi leaves"]
+  },
+  {
+    "sku": "MDH-GARAM-100G",
+    "name": "MDH Garam Masala",
+    "brand": "MDH",
+    "category": "spices",
+    "weight": 100,
+    "unit": "g",
+    "price": 70,
+    "aliases": ["garam masala", "masala"]
+  },
+  {
+    "sku": "MDH-CHILI-100G",
+    "name": "MDH Red Chili Powder",
+    "brand": "MDH",
+    "category": "spices",
+    "weight": 100,
+    "unit": "g",
+    "price": 65,
+    "aliases": ["red chili", "lal mirch", "chili powder"]
+  },
+  {
+    "sku": "EVEREST-HING-50G",
+    "name": "Everest Compounded Asafoetida",
+    "brand": "Everest",
+    "category": "spices",
+    "weight": 50,
+    "unit": "g",
+    "price": 110,
+    "aliases": ["asafoetida", "hing"]
+  },
+  {
+    "sku": "CATCH-PEPPER-100G",
+    "name": "Catch Black Pepper Powder",
+    "brand": "Catch",
+    "category": "spices",
+    "weight": 100,
+    "unit": "g",
+    "price": 95,
+    "aliases": ["black pepper", "pepper", "kali mirch"]
+  },
+  {
+    "sku": "AASHIRVAAD-ATTA-5KG",
+    "name": "Aashirvaad Whole Wheat Atta",
+    "brand": "Aashirvaad",
+    "category": "staples",
+    "weight": 5,
+    "unit": "kg",
+    "price": 275,
+    "aliases": ["atta", "wheat flour", "chakki atta"]
+  },
+  {
+    "sku": "FORTUNE-RICE-5KG",
+    "name": "Fortune Basmati Rice",
+    "brand": "Fortune",
+    "category": "staples",
+    "weight": 5,
+    "unit": "kg",
+    "price": 450,
+    "aliases": ["rice", "basmati rice", "chawal"]
+  },
+  {
+    "sku": "TRS-MOONG-1KG",
+    "name": "TRS Moong Dal",
+    "brand": "TRS",
+    "category": "staples",
+    "weight": 1,
+    "unit": "kg",
+    "price": 140,
+    "aliases": ["moong dal", "mung beans", "green gram"]
+  },
+  {
+    "sku": "TRS-MASOOR-1KG",
+    "name": "TRS Masoor Dal",
+    "brand": "TRS",
+    "category": "staples",
+    "weight": 1,
+    "unit": "kg",
+    "price": 130,
+    "aliases": ["masoor dal", "red lentils"]
+  },
+  {
+    "sku": "TRS-TOOR-1KG",
+    "name": "TRS Toor Dal",
+    "brand": "TRS",
+    "category": "staples",
+    "weight": 1,
+    "unit": "kg",
+    "price": 150,
+    "aliases": ["toor dal", "arhar dal", "pigeon peas"]
+  },
+  {
+    "sku": "EVEREST-CHANA-1KG",
+    "name": "Everest Chana Dal",
+    "brand": "Everest",
+    "category": "staples",
+    "weight": 1,
+    "unit": "kg",
+    "price": 120,
+    "aliases": ["chana dal", "split chickpeas"]
+  },
+  {
+    "sku": "FORTUNE-OIL-1L",
+    "name": "Fortune Sunflower Oil",
+    "brand": "Fortune",
+    "category": "cooking",
+    "weight": 1,
+    "unit": "l",
+    "price": 145,
+    "aliases": ["sunflower oil", "cooking oil", "tel"]
+  },
+  {
+    "sku": "AMUL-GHEE-500ML",
+    "name": "Amul Pure Ghee",
+    "brand": "Amul",
+    "category": "cooking",
+    "weight": 500,
+    "unit": "ml",
+    "price": 350,
+    "aliases": ["ghee", "clarified butter"]
+  },
+  {
+    "sku": "BARILLA-PASTA-500G",
+    "name": "Barilla Penne Pasta",
+    "brand": "Barilla",
+    "category": "staples",
+    "weight": 500,
+    "unit": "g",
+    "price": 180,
+    "aliases": ["pasta", "penne", "penne pasta"]
+  },
+  {
+    "sku": "BARILLA-SPAGHETTI-500G",
+    "name": "Barilla Spaghetti",
+    "brand": "Barilla",
+    "category": "staples",
+    "weight": 500,
+    "unit": "g",
+    "price": 180,
+    "aliases": ["spaghetti", "pasta"]
+  },
+  {
+    "sku": "KISSAN-KETCHUP-500G",
+    "name": "Kissan Tomato Ketchup",
+    "brand": "Kissan",
+    "category": "condiments",
+    "weight": 500,
+    "unit": "g",
+    "price": 95,
+    "aliases": ["ketchup", "tomato ketchup", "sauce"]
+  },
+  {
+    "sku": "MAGGI-SAUCE-1KG",
+    "name": "Maggi Hot & Sweet Sauce",
+    "brand": "Maggi",
+    "category": "condiments",
+    "weight": 1,
+    "unit": "kg",
+    "price": 110,
+    "aliases": ["hot and sweet sauce", "sauce", "maggi sauce"]
+  },
+  {
+    "sku": "CHING-VINEGAR-650ML",
+    "name": "Ching's White Vinegar",
+    "brand": "Ching's",
+    "category": "condiments",
+    "weight": 650,
+    "unit": "ml",
+    "price": 85,
+    "aliases": ["vinegar", "white vinegar", "sirka"]
+  },
+  {
+    "sku": "BRITANNIA-BREAD-400G",
+    "name": "Britannia Bread",
+    "brand": "Britannia",
+    "category": "bakery",
+    "weight": 400,
+    "unit": "g",
+    "price": 35,
+    "aliases": ["bread", "white bread"]
+  },
+  {
+    "sku": "HARVEST-EGGS-6PC",
+    "name": "Harvest Gold Brown Eggs",
+    "brand": "Harvest Gold",
+    "category": "dairy",
+    "weight": 6,
+    "unit": "units",
+    "price": 42,
+    "aliases": ["eggs", "brown eggs", "ande"]
+  },
+  {
+    "sku": "ONION-1KG",
+    "name": "Fresh Onion",
+    "brand": "Fresh",
+    "category": "vegetables",
+    "weight": 1,
+    "unit": "kg",
+    "price": 30,
+    "aliases": ["onion", "pyaz"]
+  },
+  {
+    "sku": "TOMATO-1KG",
+    "name": "Fresh Tomato",
+    "brand": "Fresh",
+    "category": "vegetables",
+    "weight": 1,
+    "unit": "kg",
+    "price": 40,
+    "aliases": ["tomato", "tamatar"]
+  },
+  {
+    "sku": "POTATO-1KG",
+    "name": "Fresh Potato",
+    "brand": "Fresh",
+    "category": "vegetables",
+    "weight": 1,
+    "unit": "kg",
+    "price": 25,
+    "aliases": ["potato", "aloo"]
+  },
+  {
+    "sku": "GINGER-250G",
+    "name": "Fresh Ginger",
+    "brand": "Fresh",
+    "category": "vegetables",
+    "weight": 250,
+    "unit": "g",
+    "price": 40,
+    "aliases": ["ginger", "adrak"]
+  },
+  {
+    "sku": "GARLIC-250G",
+    "name": "Fresh Garlic",
+    "brand": "Fresh",
+    "category": "vegetables",
+    "weight": 250,
+    "unit": "g",
+    "price": 50,
+    "aliases": ["garlic", "lahsun"]
+  },
+  {
+    "sku": "CORIANDER-100G",
+    "name": "Fresh Coriander Leaves",
+    "brand": "Fresh",
+    "category": "vegetables",
+    "weight": 100,
+    "unit": "g",
+    "price": 15,
+    "aliases": ["coriander", "coriander leaves", "dhaniya patta", "cilantro"]
+  }
+]

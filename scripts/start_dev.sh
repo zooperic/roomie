@@ -13,6 +13,13 @@ export $(grep -v '^#' .env | xargs)
 # Initialize DB if not exists
 python -c "from shared.db import init_db; init_db()"
 
+# Kill any existing process on port 8000
+if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+    echo "🔄 Port 8000 in use - killing existing process..."
+    lsof -ti:8000 | xargs kill -9 2>/dev/null || true
+    sleep 1
+fi
+
 # Start Alfred (orchestrator API) in background
 echo "▶ Starting Alfred on :8000"
 uvicorn agent_skills.alfred.main:app --host 0.0.0.0 --port 8000 --reload &
