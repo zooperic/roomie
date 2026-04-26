@@ -42,7 +42,7 @@ export interface Event {
 class AlfredClient {
   private api = axios.create({
     baseURL: API_BASE,
-    timeout: 190000,  // 3min 10s — gives server's 180s timeout room to respond cleanly
+    timeout: 220000,  // 3min 40s — gives server's 180s timeout room to respond cleanly
   });
 
   async getStatus(): Promise<AlfredStatus> {
