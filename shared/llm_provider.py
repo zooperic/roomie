@@ -95,8 +95,17 @@ async def _call_claude(prompt, system, json_mode, max_tokens, image_base64, imag
         if json_mode:
             system += "\n\nRespond ONLY with valid JSON. No markdown, no explanation, no backticks."
         kwargs["system"] = system
+    prompt_tokens_approx = (len(prompt) + len(system or "")) // 4
+    print(f"[LLM] model={model} | input≈{prompt_tokens_approx} tokens | max_out={max_tokens} | json={json_mode}")
+    print(f"[LLM] prompt preview: {prompt[:120].strip()!r}{'...' if len(prompt) > 120 else ''}")
+    import time as _t; _t0 = _t.time()
     response = await client.messages.create(**kwargs)
-    return response.content[0].text
+    result = response.content[0].text
+    _elapsed = _t.time() - _t0
+    out_tokens_approx = len(result) // 4
+    print(f"[LLM] done in {_elapsed:.1f}s | output≈{out_tokens_approx} tokens")
+    print(f"[LLM] output preview: {result[:120].strip()!r}{'...' if len(result) > 120 else ''}")
+    return result
 
 
 async def _call_openai(prompt, system, json_mode, max_tokens, image_base64, image_media_type, model):
@@ -118,8 +127,16 @@ async def _call_openai(prompt, system, json_mode, max_tokens, image_base64, imag
     kwargs = {"model": model, "max_tokens": max_tokens, "messages": messages}
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
+    prompt_tokens_approx = (len(prompt) + len(system or "")) // 4
+    print(f"[LLM] model={model} | input≈{prompt_tokens_approx} tokens | max_out={max_tokens} | json={json_mode}")
+    print(f"[LLM] prompt preview: {prompt[:120].strip()!r}{'...' if len(prompt) > 120 else ''}")
+    import time as _t; _t0 = _t.time()
     response = await client.chat.completions.create(**kwargs)
-    return response.choices[0].message.content
+    result = response.choices[0].message.content
+    _elapsed = _t.time() - _t0
+    print(f"[LLM] done in {_elapsed:.1f}s | output≈{len(result)//4} tokens")
+    print(f"[LLM] output preview: {result[:120].strip()!r}{'...' if len(result) > 120 else ''}")
+    return result
 
 
 async def _call_ollama(prompt, system, json_mode, max_tokens, model):
@@ -137,11 +154,19 @@ async def _call_ollama(prompt, system, json_mode, max_tokens, model):
     if json_mode:
         payload["format"] = "json"
     
-    print(f"[LLM] Using model: {model}")
+    prompt_tokens_approx = (len(prompt) + len(system or "")) // 4
+    print(f"[LLM] model={model} | input≈{prompt_tokens_approx} tokens | max_out={max_tokens} | json={json_mode}")
+    print(f"[LLM] prompt preview: {prompt[:120].strip()!r}{'...' if len(prompt) > 120 else ''}")
+    import time as _t; _t0 = _t.time()
     async with httpx.AsyncClient(timeout=300.0) as client:
         response = await client.post(f"{ollama_url}/api/generate", json=payload)
         response.raise_for_status()
-        return response.json()["response"]
+        result = response.json()["response"]
+    _elapsed = _t.time() - _t0
+    out_tokens_approx = len(result) // 4
+    print(f"[LLM] done in {_elapsed:.1f}s | output≈{out_tokens_approx} tokens | speed≈{out_tokens_approx/_elapsed:.0f} tok/s")
+    print(f"[LLM] output preview: {result[:120].strip()!r}{'...' if len(result) > 120 else ''}")
+    return result
 
 
 async def call_llm_vision(prompt: str, image_base64: str, system: Optional[str] = None) -> str:
@@ -175,10 +200,36 @@ async def call_llm_vision(prompt: str, image_base64: str, system: Optional[str] 
 
 
 def parse_json_response(raw: str) -> dict:
+    """
+    Parse JSON from LLM output. Handles:
+    - ```json ... ``` fences
+    - Plain ``` ... ``` fences
+    - Leading/trailing whitespace
+    - Thinking tags from DeepSeek (<think>...</think>)
+    """
+    print(f"[LLM parse] raw output ({len(raw)} chars): {raw[:200].strip()!r}{'...' if len(raw)>200 else ''}")
+    import re as _re
     cleaned = raw.strip()
+
+    # Strip DeepSeek thinking tags
+    cleaned = _re.sub(r'<think>.*?</think>', '', cleaned, flags=_re.DOTALL).strip()
+
+    # Strip markdown code fences (```json ... ``` or ``` ... ```)
     if cleaned.startswith("```"):
-        lines = cleaned.split("\n")
-        cleaned = "\n".join(lines[1:-1]) if len(lines) > 2 else cleaned
+        # Remove opening fence line
+        cleaned = _re.sub(r'^```[a-zA-Z]*\n?', '', cleaned).strip()
+        # Remove closing fence
+        cleaned = _re.sub(r'\n?```$', '', cleaned).strip()
+
+    # Find the first { or [ and last } or ] to extract pure JSON
+    start = next((i for i, c in enumerate(cleaned) if c in '{['), None)
+    end_brace = cleaned.rfind('}')
+    end_bracket = cleaned.rfind(']')
+    end = max(end_brace, end_bracket)
+
+    if start is not None and end > start:
+        cleaned = cleaned[start:end + 1]
+
     return json.loads(cleaned)
 
 

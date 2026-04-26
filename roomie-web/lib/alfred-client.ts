@@ -26,6 +26,10 @@ export interface MessageResponse {
   response: string;
   agent_used?: string;
   action_type?: string;
+  // The actual structured result from the agent (recipe parse, cart, etc.)
+  result?: unknown;
+  suggested_action?: string;
+  suggested_action_payload?: unknown;
 }
 
 export interface Event {
@@ -38,7 +42,7 @@ export interface Event {
 class AlfredClient {
   private api = axios.create({
     baseURL: API_BASE,
-    timeout: 60000,
+    timeout: 190000,  // 3min 10s — gives server's 180s timeout room to respond cleanly
   });
 
   async getStatus(): Promise<AlfredStatus> {
@@ -50,13 +54,15 @@ class AlfredClient {
     message: string,
     userId: string = 'web-user',
     forceAgent?: string,
-    imageData?: string
+    imageData?: string,
+    parameters?: Record<string, unknown>,
   ): Promise<MessageResponse> {
     const { data } = await this.api.post('/message', {
       message,
       user_id: userId,
       force_agent: forceAgent,
       image_data: imageData,
+      parameters,
     });
     return data;
   }
@@ -73,7 +79,7 @@ class AlfredClient {
 
   async addInventoryItem(
     item: Partial<InventoryItem>,
-    agent: 'fridge' | 'pantry'
+    agent: 'fridge' | 'pantry',
   ): Promise<MessageResponse> {
     const { data } = await this.api.post(`/inventory/${agent}`, item);
     return data;
@@ -82,7 +88,7 @@ class AlfredClient {
   async updateInventoryItem(
     id: number,
     item: Partial<InventoryItem>,
-    agent: 'fridge' | 'pantry'
+    agent: 'fridge' | 'pantry',
   ): Promise<MessageResponse> {
     const { data } = await this.api.put(`/inventory/${agent}/${id}`, item);
     return data;
@@ -90,50 +96,40 @@ class AlfredClient {
 
   async deleteInventoryItem(
     id: number,
-    agent: 'fridge' | 'pantry'
+    agent: 'fridge' | 'pantry',
   ): Promise<MessageResponse> {
     const { data } = await this.api.delete(`/inventory/${agent}/${id}`);
     return data;
   }
 
-  async parseRecipe(input: string, mode: 'url' | 'text' | 'dish'): Promise<MessageResponse> {
-    let message = '';
-    if (mode === 'url') {
-      message = `parse this recipe: ${input}`;
-    } else if (mode === 'text') {
-      message = `parse this recipe:\n${input}`;
-    } else {
-      message = `I want to make ${input}`;
-    }
-
-    return this.sendMessage(message, 'web-user', 'remy');
+  /**
+   * Parse a recipe via the direct /recipes/parse endpoint.
+   * Bypasses Alfred's LLM router — saves 30-120s, eliminates routing errors.
+   */
+  async parseRecipe(
+    input: string,
+    mode: 'url' | 'text' | 'dish',
+    servings?: number,
+  ): Promise<{ result: unknown; suggested_action?: string; suggested_action_payload?: unknown; error?: string }> {
+    const { data } = await this.api.post('/recipes/parse', {
+      input,
+      mode,
+      servings: servings || null,
+    });
+    return data;
   }
 
-  async buildCart(items: Array<{ name: string; quantity?: number; unit?: string }>): Promise<MessageResponse> {
+  /**
+   * Build a Swiggy cart via Lebowski from a list of items.
+   */
+  async buildCart(
+    items: Array<{ name: string; quantity?: number; unit?: string }>,
+  ): Promise<MessageResponse> {
     const { data } = await this.api.post('/build_cart', { items });
     return data;
   }
 
-  async parseRecipe(input: string, type: 'url' | 'text' | 'dish'): Promise<MessageResponse> {
-    let message = '';
-    switch (type) {
-      case 'url':
-        message = `can I make this? ${input}`;
-        break;
-      case 'text':
-        message = `parse this recipe: ${input}`;
-        break;
-      case 'dish':
-        message = `can I make ${input}?`;
-        break;
-    }
-    return this.sendMessage(message, 'web-user', 'remy');
-  }
-
-
   async getEvents(limit: number = 10): Promise<Event[]> {
-    // This would need a proper events endpoint on Alfred
-    // For now, return empty array
     return [];
   }
 }

@@ -9,7 +9,18 @@ from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQu
 from dotenv import load_dotenv
 
 load_dotenv()
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# ── Logging setup ──────────────────────────────────────────────────────────────
+# Keep Alfred/agent logs clean. Silence the httpx polling noise from telegram bots.
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+)
+# httpx logs every Telegram getUpdates call (every 10s per bot) — pure noise
+logging.getLogger("httpx").setLevel(logging.WARNING)
+# python-telegram-bot internals — only show warnings+
+logging.getLogger("telegram").setLevel(logging.WARNING)
+logging.getLogger("apscheduler").setLevel(logging.WARNING)
 
 ALFRED_URL = os.getenv("ALFRED_URL", "http://localhost:8000")
 ALLOWED_USER_IDS = [int(uid) for uid in os.getenv("ALLOWED_TELEGRAM_USER_IDS", "").split(",") if uid]

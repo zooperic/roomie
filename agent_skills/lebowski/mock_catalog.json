@@ -7,7 +7,11 @@
     "weight": 1,
     "unit": "l",
     "price": 60,
-    "aliases": ["milk", "doodh", "taaza milk"]
+    "aliases": [
+      "milk",
+      "doodh",
+      "taaza milk"
+    ]
   },
   {
     "sku": "AMUL-BUTTER-100G",
@@ -17,7 +21,10 @@
     "weight": 100,
     "unit": "g",
     "price": 60,
-    "aliases": ["butter", "makhan"]
+    "aliases": [
+      "butter",
+      "makhan"
+    ]
   },
   {
     "sku": "AMUL-CREAM-250ML",
@@ -27,7 +34,10 @@
     "weight": 250,
     "unit": "ml",
     "price": 65,
-    "aliases": ["cream", "fresh cream"]
+    "aliases": [
+      "cream",
+      "fresh cream"
+    ]
   },
   {
     "sku": "AMUL-PANEER-200G",
@@ -37,7 +47,10 @@
     "weight": 200,
     "unit": "g",
     "price": 90,
-    "aliases": ["paneer", "cottage cheese"]
+    "aliases": [
+      "paneer",
+      "cottage cheese"
+    ]
   },
   {
     "sku": "MOTHER-DAHI-400G",
@@ -47,7 +60,11 @@
     "weight": 400,
     "unit": "g",
     "price": 35,
-    "aliases": ["dahi", "curd", "yogurt"]
+    "aliases": [
+      "dahi",
+      "curd",
+      "yogurt"
+    ]
   },
   {
     "sku": "MDH-HALDI-100G",
@@ -57,7 +74,11 @@
     "weight": 100,
     "unit": "g",
     "price": 50,
-    "aliases": ["turmeric", "haldi", "turmeric powder"]
+    "aliases": [
+      "turmeric",
+      "haldi",
+      "turmeric powder"
+    ]
   },
   {
     "sku": "MDH-DHANIYA-100G",
@@ -67,7 +88,10 @@
     "weight": 100,
     "unit": "g",
     "price": 45,
-    "aliases": ["coriander powder", "dhaniya powder"]
+    "aliases": [
+      "coriander powder",
+      "dhaniya powder"
+    ]
   },
   {
     "sku": "MDH-JEERA-100G",
@@ -77,7 +101,10 @@
     "weight": 100,
     "unit": "g",
     "price": 55,
-    "aliases": ["cumin powder", "jeera powder"]
+    "aliases": [
+      "cumin powder",
+      "jeera powder"
+    ]
   },
   {
     "sku": "MDH-KASURI-25G",
@@ -87,7 +114,11 @@
     "weight": 25,
     "unit": "g",
     "price": 35,
-    "aliases": ["kasuri methi", "dried fenugreek leaves", "methi leaves"]
+    "aliases": [
+      "kasuri methi",
+      "dried fenugreek leaves",
+      "methi leaves"
+    ]
   },
   {
     "sku": "MDH-GARAM-100G",
@@ -97,7 +128,10 @@
     "weight": 100,
     "unit": "g",
     "price": 70,
-    "aliases": ["garam masala", "masala"]
+    "aliases": [
+      "garam masala",
+      "masala"
+    ]
   },
   {
     "sku": "MDH-CHILI-100G",
@@ -107,7 +141,11 @@
     "weight": 100,
     "unit": "g",
     "price": 65,
-    "aliases": ["red chili", "lal mirch", "chili powder"]
+    "aliases": [
+      "red chili",
+      "lal mirch",
+      "chili powder"
+    ]
   },
   {
     "sku": "EVEREST-HING-50G",
@@ -117,7 +155,10 @@
     "weight": 50,
     "unit": "g",
     "price": 110,
-    "aliases": ["asafoetida", "hing"]
+    "aliases": [
+      "asafoetida",
+      "hing"
+    ]
   },
   {
     "sku": "CATCH-PEPPER-100G",
@@ -127,7 +168,11 @@
     "weight": 100,
     "unit": "g",
     "price": 95,
-    "aliases": ["black pepper", "pepper", "kali mirch"]
+    "aliases": [
+      "black pepper",
+      "pepper",
+      "kali mirch"
+    ]
   },
   {
     "sku": "AASHIRVAAD-ATTA-5KG",
@@ -137,7 +182,11 @@
     "weight": 5,
     "unit": "kg",
     "price": 275,
-    "aliases": ["atta", "wheat flour", "chakki atta"]
+    "aliases": [
+      "atta",
+      "wheat flour",
+      "chakki atta"
+    ]
   },
   {
     "sku": "FORTUNE-RICE-5KG",
@@ -147,7 +196,11 @@
     "weight": 5,
     "unit": "kg",
     "price": 450,
-    "aliases": ["rice", "basmati rice", "chawal"]
+    "aliases": [
+      "rice",
+      "basmati rice",
+      "chawal"
+    ]
   },
   {
     "sku": "TRS-MOONG-1KG",
@@ -157,7 +210,11 @@
     "weight": 1,
     "unit": "kg",
     "price": 140,
-    "aliases": ["moong dal", "mung beans", "green gram"]
+    "aliases": [
+      "moong dal",
+      "mung beans",
+      "green gram"
+    ]
   },
   {
     "sku": "TRS-MASOOR-1KG",
@@ -167,7 +224,10 @@
     "weight": 1,
     "unit": "kg",
     "price": 130,
-    "aliases": ["masoor dal", "red lentils"]
+    "aliases": [
+      "masoor dal",
+      "red lentils"
+    ]
   },
   {
     "sku": "TRS-TOOR-1KG",
@@ -177,7 +237,11 @@
     "weight": 1,
     "unit": "kg",
     "price": 150,
-    "aliases": ["toor dal", "arhar dal", "pigeon peas"]
+    "aliases": [
+      "toor dal",
+      "arhar dal",
+      "pigeon peas"
+    ]
   },
   {
     "sku": "EVEREST-CHANA-1KG",
@@ -187,7 +251,10 @@
     "weight": 1,
     "unit": "kg",
     "price": 120,
-    "aliases": ["chana dal", "split chickpeas"]
+    "aliases": [
+      "chana dal",
+      "split chickpeas"
+    ]
   },
   {
     "sku": "FORTUNE-OIL-1L",
@@ -197,7 +264,11 @@
     "weight": 1,
     "unit": "l",
     "price": 145,
-    "aliases": ["sunflower oil", "cooking oil", "tel"]
+    "aliases": [
+      "sunflower oil",
+      "cooking oil",
+      "tel"
+    ]
   },
   {
     "sku": "AMUL-GHEE-500ML",
@@ -207,7 +278,10 @@
     "weight": 500,
     "unit": "ml",
     "price": 350,
-    "aliases": ["ghee", "clarified butter"]
+    "aliases": [
+      "ghee",
+      "clarified butter"
+    ]
   },
   {
     "sku": "BARILLA-PASTA-500G",
@@ -217,7 +291,11 @@
     "weight": 500,
     "unit": "g",
     "price": 180,
-    "aliases": ["pasta", "penne", "penne pasta"]
+    "aliases": [
+      "pasta",
+      "penne",
+      "penne pasta"
+    ]
   },
   {
     "sku": "BARILLA-SPAGHETTI-500G",
@@ -227,7 +305,10 @@
     "weight": 500,
     "unit": "g",
     "price": 180,
-    "aliases": ["spaghetti", "pasta"]
+    "aliases": [
+      "spaghetti",
+      "pasta"
+    ]
   },
   {
     "sku": "KISSAN-KETCHUP-500G",
@@ -237,7 +318,11 @@
     "weight": 500,
     "unit": "g",
     "price": 95,
-    "aliases": ["ketchup", "tomato ketchup", "sauce"]
+    "aliases": [
+      "ketchup",
+      "tomato ketchup",
+      "sauce"
+    ]
   },
   {
     "sku": "MAGGI-SAUCE-1KG",
@@ -247,7 +332,11 @@
     "weight": 1,
     "unit": "kg",
     "price": 110,
-    "aliases": ["hot and sweet sauce", "sauce", "maggi sauce"]
+    "aliases": [
+      "hot and sweet sauce",
+      "sauce",
+      "maggi sauce"
+    ]
   },
   {
     "sku": "CHING-VINEGAR-650ML",
@@ -257,7 +346,11 @@
     "weight": 650,
     "unit": "ml",
     "price": 85,
-    "aliases": ["vinegar", "white vinegar", "sirka"]
+    "aliases": [
+      "vinegar",
+      "white vinegar",
+      "sirka"
+    ]
   },
   {
     "sku": "BRITANNIA-BREAD-400G",
@@ -267,7 +360,10 @@
     "weight": 400,
     "unit": "g",
     "price": 35,
-    "aliases": ["bread", "white bread"]
+    "aliases": [
+      "bread",
+      "white bread"
+    ]
   },
   {
     "sku": "HARVEST-EGGS-6PC",
@@ -277,7 +373,11 @@
     "weight": 6,
     "unit": "units",
     "price": 42,
-    "aliases": ["eggs", "brown eggs", "ande"]
+    "aliases": [
+      "eggs",
+      "brown eggs",
+      "ande"
+    ]
   },
   {
     "sku": "ONION-1KG",
@@ -287,7 +387,10 @@
     "weight": 1,
     "unit": "kg",
     "price": 30,
-    "aliases": ["onion", "pyaz"]
+    "aliases": [
+      "onion",
+      "pyaz"
+    ]
   },
   {
     "sku": "TOMATO-1KG",
@@ -297,7 +400,10 @@
     "weight": 1,
     "unit": "kg",
     "price": 40,
-    "aliases": ["tomato", "tamatar"]
+    "aliases": [
+      "tomato",
+      "tamatar"
+    ]
   },
   {
     "sku": "POTATO-1KG",
@@ -307,7 +413,10 @@
     "weight": 1,
     "unit": "kg",
     "price": 25,
-    "aliases": ["potato", "aloo"]
+    "aliases": [
+      "potato",
+      "aloo"
+    ]
   },
   {
     "sku": "GINGER-250G",
@@ -317,7 +426,10 @@
     "weight": 250,
     "unit": "g",
     "price": 40,
-    "aliases": ["ginger", "adrak"]
+    "aliases": [
+      "ginger",
+      "adrak"
+    ]
   },
   {
     "sku": "GARLIC-250G",
@@ -327,7 +439,10 @@
     "weight": 250,
     "unit": "g",
     "price": 50,
-    "aliases": ["garlic", "lahsun"]
+    "aliases": [
+      "garlic",
+      "lahsun"
+    ]
   },
   {
     "sku": "CORIANDER-100G",
@@ -337,6 +452,360 @@
     "weight": 100,
     "unit": "g",
     "price": 15,
-    "aliases": ["coriander", "coriander leaves", "dhaniya patta", "cilantro"]
+    "aliases": [
+      "coriander",
+      "coriander leaves",
+      "dhaniya patta",
+      "cilantro"
+    ]
+  },
+  {
+    "sku": "FRESHO-CHICKEN-500G",
+    "name": "Fresh Chicken Breast",
+    "brand": "Fresho",
+    "category": "meat",
+    "weight": 500,
+    "unit": "g",
+    "price": 180,
+    "aliases": [
+      "chicken",
+      "chicken breast",
+      "boneless chicken",
+      "murgh"
+    ]
+  },
+  {
+    "sku": "FRESHO-CHICKEN-1KG",
+    "name": "Fresh Chicken Thighs",
+    "brand": "Fresho",
+    "category": "meat",
+    "weight": 1000,
+    "unit": "g",
+    "price": 280,
+    "aliases": [
+      "chicken thighs",
+      "chicken pieces",
+      "chicken drumstick"
+    ]
+  },
+  {
+    "sku": "KNORR-CHICKEN-STOCK-500ML",
+    "name": "Knorr Chicken Stock",
+    "brand": "Knorr",
+    "category": "condiments",
+    "weight": 500,
+    "unit": "ml",
+    "price": 120,
+    "aliases": [
+      "chicken stock",
+      "chicken broth",
+      "chicken bouillon",
+      "chicken soup stock"
+    ]
+  },
+  {
+    "sku": "BORGES-OLIVE-OIL-500ML",
+    "name": "Borges Extra Virgin Olive Oil",
+    "brand": "Borges",
+    "category": "cooking",
+    "weight": 500,
+    "unit": "ml",
+    "price": 450,
+    "aliases": [
+      "olive oil",
+      "extra virgin olive oil",
+      "EVOO"
+    ]
+  },
+  {
+    "sku": "DLECTA-HEAVY-CREAM-200ML",
+    "name": "Dlecta Heavy Whipping Cream",
+    "brand": "Dlecta",
+    "category": "dairy",
+    "weight": 200,
+    "unit": "ml",
+    "price": 95,
+    "aliases": [
+      "heavy cream",
+      "whipping cream",
+      "double cream",
+      "fresh cream heavy"
+    ]
+  },
+  {
+    "sku": "DLECTA-PARMESAN-100G",
+    "name": "Dlecta Parmesan Cheese",
+    "brand": "Dlecta",
+    "category": "dairy",
+    "weight": 100,
+    "unit": "g",
+    "price": 350,
+    "aliases": [
+      "parmesan",
+      "parmesan cheese",
+      "parmigiano",
+      "grated parmesan"
+    ]
+  },
+  {
+    "sku": "SUNDRIED-TOMATO-100G",
+    "name": "Nourish Sun Dried Tomatoes",
+    "brand": "Nourish",
+    "category": "condiments",
+    "weight": 100,
+    "unit": "g",
+    "price": 220,
+    "aliases": [
+      "sun dried tomatoes",
+      "sundried tomatoes",
+      "sun-dried tomatoes",
+      "dried tomatoes"
+    ]
+  },
+  {
+    "sku": "MAIDA-1KG",
+    "name": "Pillsbury All Purpose Flour",
+    "brand": "Pillsbury",
+    "category": "staples",
+    "weight": 1000,
+    "unit": "g",
+    "price": 75,
+    "aliases": [
+      "all purpose flour",
+      "plain flour",
+      "maida",
+      "refined flour",
+      "flour"
+    ]
+  },
+  {
+    "sku": "BASIL-FRESH-50G",
+    "name": "FreshBox Fresh Basil",
+    "brand": "FreshBox",
+    "category": "vegetables",
+    "weight": 50,
+    "unit": "g",
+    "price": 60,
+    "aliases": [
+      "fresh basil",
+      "basil leaves",
+      "tulsi leaves",
+      "sweet basil"
+    ]
+  },
+  {
+    "sku": "GARLIC-FRESH-100G",
+    "name": "Fresh Garlic",
+    "brand": "Local",
+    "category": "vegetables",
+    "weight": 100,
+    "unit": "g",
+    "price": 30,
+    "aliases": [
+      "garlic",
+      "fresh garlic",
+      "garlic cloves",
+      "lehsun",
+      "lahsun"
+    ]
+  },
+  {
+    "sku": "GINGER-FRESH-100G",
+    "name": "Fresh Ginger",
+    "brand": "Local",
+    "category": "vegetables",
+    "weight": 100,
+    "unit": "g",
+    "price": 20,
+    "aliases": [
+      "ginger",
+      "fresh ginger",
+      "ginger root",
+      "adrak"
+    ]
+  },
+  {
+    "sku": "OREGANO-DRIED-25G",
+    "name": "Keya Dried Oregano",
+    "brand": "Keya",
+    "category": "spices",
+    "weight": 25,
+    "unit": "g",
+    "price": 65,
+    "aliases": [
+      "dried oregano",
+      "oregano",
+      "ajwain leaves"
+    ]
+  },
+  {
+    "sku": "THYME-DRIED-25G",
+    "name": "Keya Dried Thyme",
+    "brand": "Keya",
+    "category": "spices",
+    "weight": 25,
+    "unit": "g",
+    "price": 65,
+    "aliases": [
+      "dried thyme",
+      "thyme"
+    ]
+  },
+  {
+    "sku": "CHILLI-FLAKES-50G",
+    "name": "Keya Red Chilli Flakes",
+    "brand": "Keya",
+    "category": "spices",
+    "weight": 50,
+    "unit": "g",
+    "price": 75,
+    "aliases": [
+      "red pepper flakes",
+      "chilli flakes",
+      "red chilli flakes",
+      "crushed red pepper"
+    ]
+  },
+  {
+    "sku": "AMUL-CHEESE-200G",
+    "name": "Amul Processed Cheese",
+    "brand": "Amul",
+    "category": "dairy",
+    "weight": 200,
+    "unit": "g",
+    "price": 120,
+    "aliases": [
+      "cheese",
+      "processed cheese",
+      "cheddar",
+      "mozzarella"
+    ]
+  },
+  {
+    "sku": "PASTA-PENNE-500G",
+    "name": "Barilla Penne Pasta",
+    "brand": "Barilla",
+    "category": "staples",
+    "weight": 500,
+    "unit": "g",
+    "price": 180,
+    "aliases": [
+      "pasta",
+      "penne",
+      "penne rigate"
+    ]
+  },
+  {
+    "sku": "LEMON-FRESH-EACH",
+    "name": "Fresh Lemon",
+    "brand": "Local",
+    "category": "vegetables",
+    "weight": 100,
+    "unit": "g",
+    "price": 15,
+    "aliases": [
+      "lemon",
+      "nimbu",
+      "lime",
+      "lemon juice"
+    ]
+  },
+  {
+    "sku": "PANEER-200G",
+    "name": "Amul Paneer",
+    "brand": "Amul",
+    "category": "dairy",
+    "weight": 200,
+    "unit": "g",
+    "price": 90,
+    "aliases": [
+      "paneer",
+      "cottage cheese",
+      "fresh paneer"
+    ]
+  },
+  {
+    "sku": "CAPSICUM-RED-EACH",
+    "name": "Fresh Red Capsicum",
+    "brand": "Local",
+    "category": "vegetables",
+    "weight": 150,
+    "unit": "g",
+    "price": 35,
+    "aliases": [
+      "red capsicum",
+      "red bell pepper",
+      "capsicum",
+      "shimla mirch"
+    ]
+  },
+  {
+    "sku": "COCONUT-MILK-400ML",
+    "name": "Dabur Coconut Milk",
+    "brand": "Dabur",
+    "category": "condiments",
+    "weight": 400,
+    "unit": "ml",
+    "price": 85,
+    "aliases": [
+      "coconut milk",
+      "nariyal doodh",
+      "coconut cream"
+    ]
+  },
+  {
+    "sku": "TOMATO-PUREE-200G",
+    "name": "Kissan Tomato Puree",
+    "brand": "Kissan",
+    "category": "condiments",
+    "weight": 200,
+    "unit": "g",
+    "price": 55,
+    "aliases": [
+      "tomato puree",
+      "tomato paste",
+      "tomato sauce base"
+    ]
+  },
+  {
+    "sku": "SOY-SAUCE-200ML",
+    "name": "Ching's Soy Sauce",
+    "brand": "Ching's",
+    "category": "condiments",
+    "weight": 200,
+    "unit": "ml",
+    "price": 65,
+    "aliases": [
+      "soy sauce",
+      "soya sauce",
+      "dark soy sauce"
+    ]
+  },
+  {
+    "sku": "MUSTARD-OIL-1L",
+    "name": "Patanjali Mustard Oil",
+    "brand": "Patanjali",
+    "category": "cooking",
+    "weight": 1000,
+    "unit": "ml",
+    "price": 175,
+    "aliases": [
+      "mustard oil",
+      "sarson ka tel",
+      "kachi ghani oil"
+    ]
+  },
+  {
+    "sku": "COCONUT-OIL-500ML",
+    "name": "Parachute Coconut Oil",
+    "brand": "Parachute",
+    "category": "cooking",
+    "weight": 500,
+    "unit": "ml",
+    "price": 165,
+    "aliases": [
+      "coconut oil",
+      "nariyal tel"
+    ]
   }
 ]

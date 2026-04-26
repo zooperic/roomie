@@ -1,302 +1,255 @@
 # ROOMIE Development Roadmap
 
-**Project:** Random Operators On My Individual Errands  
 **Last Updated:** April 26, 2026
 
 ---
 
-## Phase 1: Core Foundation ✅ COMPLETE
+## Status Summary
 
-**Timeline:** Completed  
-**Status:** ✅ All features implemented and tested
-
-### Features Delivered:
-- ✅ Alfred orchestrator with intent routing
-- ✅ Elsa (fridge inventory management)
-- ✅ Remy (pantry + basic recipe parsing)
-- ✅ SQLite database with inventory models
-- ✅ FastAPI REST API
-- ✅ Multi-LLM support (Claude/OpenAI/Ollama)
-- ✅ Telegram bot interface (4 bots)
-- ✅ Basic confirmation workflow
-
----
-
-## Phase 2: Recipe & Procurement ✅ COMPLETE
-
-**Timeline:** Completed  
-**Status:** ✅ All features implemented and tested
-
-### Features Delivered:
-- ✅ Lebowski agent (procurement specialist)
-- ✅ Recipe parsing (3 modes: URL, text, dish name)
-- ✅ Ingredient availability checking
-- ✅ Mock Swiggy catalog (33 products)
-- ✅ Cart building from recipes
-- ✅ Hinglish translation support
-- ✅ Recipe-to-cart complete workflow
-- ✅ Telegram bot enhancements
+| Phase | Name | Status |
+|-------|------|--------|
+| 1 | Core Foundation | ✅ Complete |
+| 2 | Recipe & Procurement | ✅ Complete |
+| 3 | Web Dashboard | ✅ Complete |
+| **4** | **Recipe Ecosystem** | **🔨 Active** |
+| 5 | Social Media Import | 📋 Next |
+| 6 | Charlie — Places Agent | 📋 Planned |
+| 7 | Nutrition Intelligence | 📋 Planned |
+| 8 | Hardware Integration | 📋 Planned |
+| 9 | Multi-User & Cloud | 💭 Future |
 
 ---
 
-## Phase 3: Web Dashboard & Advanced Features ✅ COMPLETE
+## Phase 1–3 ✅ Complete
 
-**Timeline:** Completed April 26, 2026  
-**Status:** ✅ Production Ready
-
-### Phase 3.1: Dashboard Foundation ✅
-- ✅ Next.js 14 setup (App Router)
-- ✅ React Query integration
-- ✅ TypeScript configuration
-- ✅ Tailwind CSS styling
-- ✅ Base layout with 9 tabs
-- ✅ API client (alfred-client.ts)
-
-### Phase 3.2: Inventory Management ✅
-- ✅ Full CRUD operations
-- ✅ Fridge & pantry separate views
-- ✅ Search and filtering
-- ✅ Low stock warnings
-- ✅ Category badges
-- ✅ Real-time updates
-
-### Phase 3.3: Recipe Parser Interface ✅
-- ✅ Three input modes (URL/text/dish)
-- ✅ Available vs missing ingredients
-- ✅ Integration with Remy agent
-- ✅ Auto-cart building trigger
-
-### Phase 3.4: Shopping Cart ✅
-- ✅ Manual item addition
-- ✅ Recipe integration
-- ✅ Product matching via Lebowski
-- ✅ Category grouping
-- ✅ Price breakdown
-- ✅ Order placement (mock + real)
-
-### Phase 3.5: Swiggy OAuth Integration ✅
-- ✅ OAuth 2.0 PKCE flow
-- ✅ Local callback server (port 8765)
-- ✅ Token storage & auto-refresh
-- ✅ Real order placement
-- ✅ Mock/real mode toggle
-- ✅ Error handling
-
-### Phase 3.6: Photo Scanner ✅
-- ✅ Upload interface (drag & drop)
-- ✅ Intent selection (Add/Used/General)
-- ✅ Integration with Iris agent
-- ✅ Confidence scores
-- ✅ Auto-inventory updates
-- ✅ Tips for best results
-
-### Phase 3.7: Agent Chat Interface ✅
-- ✅ Agent selector (all 6 agents)
-- ✅ Real-time messaging
-- ✅ Message history
-- ✅ Timestamps
-- ✅ Agent-specific theming
-- ✅ Keyboard shortcuts
-
-### Phase 3.8: Analytics Dashboard ✅
-- ✅ Stock health scoring
-- ✅ Key metrics display
-- ✅ AI-generated insights (Finn)
-- ✅ Category breakdown charts
-- ✅ Low stock details
-- ✅ Visual trends
-
-### Phase 3.9: Polish & Fixes ✅
-- ✅ Clickable overview cards
-- ✅ Branding updates (ROOMIE)
-- ✅ Reduced polling frequency
-- ✅ Health endpoint
-- ✅ Error handling
-- ✅ Cache management
+Foundation (Alfred, Elsa, Remy, Lebowski, Iris, Finn), SQLite DB, FastAPI, Telegram bots, Next.js dashboard (9 tabs), Swiggy OAuth, photo scanning, analytics. See git history.
 
 ---
 
-## Phase 4: Fixes & Hardware Integration 📋 PLANNED
+## Phase 4: Recipe Ecosystem 🔨 Active
 
-Beautification upgrades:
-- 🔜 Expiry Date management and alerts
-- Advanced Analytics
+### Done in Phase 4 so far
 
-**Timeline:** TBD  
-**Status:** 🔜 Next Phase
+**Recipe pipeline rewrite (Remy):**
+- `recipe_pipeline.py` — real HTTP scraping via httpx, schema.org JSON-LD extraction (covers Hebbars, Archana's, Substack, Delish, etc.), HTML fallback
+- Pydantic v2 schema: permissive for LLM output → normalized to strict canonical units
+- Unit normalization: "strand"→piece, "teaspoon"→tsp, "knob"→piece, etc. (20+ mappings)
+- Post-processing: filter non-shoppable (water, ice), dedupe with quantity summing
+- Two prompt tiers: slim (~395 tokens) for text/dish, full (~1499 tokens) for URL scraping
+- DeepSeek thinking-tag stripping in `parse_json_response`
 
-### Planned Features:
-- 🔜 Raspberry Pi setup
-- 🔜 Camera module integration
-- 🔜 Auto-capture on fridge open
-- 🔜 Weight sensors for items
-- 🔜 Barcode scanner
-- 🔜 RFID tags (optional)
-- 🔜 Smart fridge light trigger
-- 🔜 Temperature monitoring
+**Alfred routing fix:**
+- `/recipes/parse` direct endpoint — bypasses LLM router entirely (was adding 30–120s)
+- `parameters` field on `/message` — pre-extracted params skip `route_intent()` call
+- 180s server-side timeout with clean error message
+- `suggested_action_payload` now returned in all responses
 
-### Hardware Required:
-- Raspberry Pi 4 (4GB+)
-- Pi Camera Module V2
-- Load cells (x4) + HX711
-- Magnetic door sensor
-- Power supply + cabling
+**Remy agent:**
+- Eliminated 2 unnecessary LLM calls per parse (Lebowski ask + error humanizer now use templates)
+- Humane error messages without LLM (pattern-matched on error type)
+- Servings scaling passed through full pipeline
 
-See `HARDWARE_CHECKLIST.md` for detailed setup.
+**Lebowski:**
+- Mock catalog expanded: 34 → 58 SKUs (added chicken, olive oil, parmesan, heavy cream, sun-dried tomatoes, herbs, stock, etc.)
+- Cart response normalized: `matched_items` + `items` keys, `total_cost` + `total`, `successfully_matched`
 
----
+**Web UI (RecipeParser.tsx):**
+- Stage machine: idle → parsing → parsed → sending_to_lebowski → cart_ready → error
+- Servings input inline
+- Live progress bar with elapsed seconds + contextual messages (5s / 20s / 50s thresholds)
+- Proper response reading from `/recipes/parse` (was reading wrong key)
+- Timeout error distinguishes network failure vs slow model
 
-## Phase 5: Multi-User & Cloud 📋 PLANNED
+**Telegram (remy_bot.py):**
+- Servings extraction from natural language ("for 3 people")
+- Ask-back with inline buttons (1 / 2 / 4 / 6 / Skip) before parsing
+- Lebowski handoff confirm/deny inline buttons
+- Recipe result formatted with available/missing breakdown
 
-**Timeline:** TBD  
-**Status:** 🔜 Future
+**Logging:**
+- `httpx` logger set to WARNING in both Alfred and base_bot.py
+- Telegram polling noise eliminated
+- Server-side timing logs: `[Remy scrape]`, `[Remy pipeline]`, `[Remy]` with elapsed seconds
 
-### Planned Features:
-- 🔜 User authentication (OAuth)
-- 🔜 Multi-household support
-- 🔜 PostgreSQL migration
-- 🔜 Cloud deployment (Railway/Heroku)
-- 🔜 Historical data tracking
-- 🔜 Consumption trends over time
-- 🔜 Cost analytics
-- 🔜 Family sharing
-- 🔜 Recipe collections
-- 🔜 Meal planning calendar
+### Still to build in Phase 4
 
----
+- **Recipe Library DB** — `RecipeDB` table (title, servings, ingredients JSON, tags, bookmarked, times_cooked)
+- **5 API endpoints** — GET/POST/PATCH/DELETE /recipes
+- **Recipes tab** in web dashboard — grid view, search, tag filter, bookmark star
+- **"Save to Library"** button after any successful parse
+- **Recipe detail panel** — servings scaler, ingredient list, "Cook now" CTA
+- **LLM auto-tagging** on save (vegetarian, quick, Indian, etc.)
+- **Telegram `/recipes` command** — browse bookmarked, re-cook
 
-## Phase 6: Advanced Intelligence 📋 BRAINSTORM
-
-**Timeline:** TBD  
-**Status:** 💭 Ideas
-
-### Potential Features:
-- 💭 ML-based expiry prediction
-- 💭 Smart reorder suggestions
-- 💭 Nutritional analysis
-- 💭 Meal prep recommendations
-- 💭 Grocery delivery comparison (Swiggy/Zepto/Blinkit)
-- 💭 Voice interface (Hey Alfred)
-- 💭 Smart appliance integration
-- 💭 Energy usage tracking
-- 💭 Waste reduction insights
+**Scope gate:** Phase 4 ships without social media ingestion. Those are Phase 5.
 
 ---
 
-## Technical Debt & Improvements
+## Phase 5: Social Media Import 📋 Next
 
-### Known Issues:
-- None! All Phase 3 bugs resolved.
+### Why yt-dlp and not a custom scraper
 
-### Future Improvements:
-- Redis for confirmation state (currently in-memory)
-- WebSocket for real-time updates
-- Batch inventory operations
-- CSV import/export
-- Backup/restore functionality
-- API rate limiting
-- Advanced search filters
+Instagram performs TLS fingerprinting — Python's `requests`/`httpx` are detected as bots at the handshake level, before headers are even read. Any DIY scraper breaks within hours. `yt-dlp` controls the TLS layer, is maintained by a large community, and updates automatically when platforms change. This is the same approach used by RecipeBro, ReciMe, CookingGuru, and the open-source `pickeld/social_recipes` (MIT licensed).
+
+### Build order — easiest to hardest
+
+| Source | Effort | Notes |
+|--------|--------|-------|
+| YouTube Shorts | Low | yt-dlp works perfectly, no auth |
+| TikTok | Low | yt-dlp + caption usually complete |
+| Pinterest | Low | Existing JSON-LD scraper likely works |
+| Instagram caption-only | Low | yt-dlp `--skip-download`, needs cookies.txt |
+| Photo/screenshot upload | Low | Vision LLM already in stack (qwen2.5vl) |
+| Instagram Reel (video) | Medium | cookies.txt + faster-whisper transcription |
+
+**Do not build Instagram first.** Start with YouTube + TikTok (no cookies needed).
+
+### New dependencies
+
+```
+yt-dlp           # video/metadata download
+faster-whisper   # local Whisper transcription
+ffmpeg           # audio extraction (system package)
+```
+
+### New file: `agent_skills/remy/social_importer.py`
+
+Wraps yt-dlp + Whisper. Called by `recipe_pipeline.py` when URL is a social media URL. Not a fork of `social_recipes` — borrows the pattern.
+
+### Instagram cookies
+
+Export logged-in cookies as `cookies.txt` (Netscape format) using "Get cookies.txt LOCALLY" browser extension. Personal use only.
 
 ---
 
-## Milestones Achieved
+## Phase 6: Charlie — Places Agent 📋 Planned
+
+**Blocked on Phase 5** — Charlie reuses the social import pipeline.
+
+Charlie manages saved dining places. Peer agent to Remy — same extraction machinery, different data model and UI.
+
+**Ingestion:** Google Maps share links, Instagram restaurant posts, manual entry, shared Maps lists  
+**Library:** cuisine tags, area, occasion, "want to try" / "been there", visit count, notes  
+**Discovery:** "biryani places near Bandra", "that Lebanese place I saved", export as Maps list
+
+**DB model:**
+```
+PlaceDB: id, name, cuisine_type, area, city, google_maps_url,
+         instagram_url, tags(JSON), notes, price_range,
+         status(want_to_try|been), times_visited, cover_image_url
+```
+
+**Why not in Remy:** shared pipeline code, entirely different data and intents. Alfred routes "save this restaurant" to Charlie, "parse this recipe" to Remy.
+
+---
+
+## Phase 7: Nutrition Intelligence 📋 Planned
+
+**Data source:** Open Food Facts (free, no key, 3M+ products, decent Indian coverage) + USDA FoodData Central for raw ingredients.
+
+**What to surface:**
+- Per-serving macros on packaged inventory items
+- Red flags: sodium >600mg, added sugar >15g, sat fat >5g
+- Nutri-Score (A–E) where available
+- Side-by-side brand comparison
+- Recipe aggregate nutrition per serving
+
+**Integration:** async background lookup on `update_inventory` for packaged goods. Nullable `nutrition_data` JSON column on `InventoryItemDB`. Nutrition card in web UI — hidden when data unavailable, never broken.
+
+**Scope gate:** packaged goods only (named brands). Raw ingredients (onion, rice) are lower priority. Barcode accuracy improves in Phase 8 when scanner is live.
+
+**Effort:** ~1 weekend. High value, low complexity.
+
+---
+
+## Phase 8: Hardware Integration 📋 Planned
+
+- Raspberry Pi 4 + Pi Camera Module V2
+- Auto-capture on fridge open (magnetic door sensor)
+- Load cells + HX711 for bulk staple weight (rice, dal)
+- Barcode scanner → exact Open Food Facts match (Phase 7 accuracy improves)
+- Temperature monitoring
+
+See `HARDWARE_CHECKLIST.md` for procurement.
+
+---
+
+## Phase 9: Multi-User & Cloud 💭 Future
+
+- User auth (OAuth / JWT)
+- PostgreSQL migration
+- Multi-household, family sharing
+- Historical consumption analytics
+- Meal planning calendar
+- Cloud deploy (Railway + Vercel)
+
+---
+
+## What to Build Next (Decision)
+
+```
+THIS WEEKEND — Phase 4 recipe library:
+  RecipeDB table + 5 endpoints
+  Save-from-parser button
+  Recipes tab: browse, search, bookmark
+  Recipe detail: servings scaler + Cook now
+  Telegram /recipes command
+
+AFTER THAT — Phase 7 nutrition (1 weekend, high value):
+  Open Food Facts lookup
+  Nutrition card component
+
+THEN — Phase 5 social import (step by step):
+  1. yt-dlp for YouTube + TikTok
+  2. Pinterest (test existing scraper first)
+  3. Screenshot/image upload via vision LLM
+  4. Instagram caption
+  5. Instagram Reel + Whisper
+
+Phase 6 Charlie follows Phase 5.
+Phase 8 hardware requires physical procurement.
+```
+
+---
+
+## Architecture Rules (Don't Break These)
+
+1. **No custom Instagram scraper** — yt-dlp only, it handles TLS fingerprinting
+2. **Charlie ≠ Remy** — shared pipeline, separate agents and data models
+3. **Nutrition data is optional everywhere** — missing card is fine, broken UI is not
+4. **Phase 4 ships without Phase 5** — recipe library works with URL/paste/dish already
+5. **Slim prompt for text/dish, full prompt for URL** — 395 vs 1499 tokens matters on local LLMs
+6. **No LLM calls in error paths** — templates only, errors must be fast
+
+---
+
+## Technical Debt
+
+| Item | Fix |
+|------|-----|
+| Confirmation state in-memory (lost on restart) | Redis |
+| Polling for real-time chat updates | WebSocket |
+| `parseRecipe` in alfred-client sends NL → re-routed | Already fixed: direct `/recipes/parse` |
+| Recipe pipeline: no LLM retry on failure | Retry with backoff |
+| SQLite single-writer | PostgreSQL in Phase 9 |
+| Catalog: 58 SKUs, no real Swiggy search | Swiggy MCP live catalog |
+
+---
+
+## Milestones
 
 | Milestone | Date | Status |
 |-----------|------|--------|
-| Project inception | 2026-04 | ✅ |
-| Phase 1 (Foundation) | 2026-04 | ✅ |
-| Phase 2 (Recipes) | 2026-04 | ✅ |
-| Phase 3.1-3.5 (Web Dashboard) | 2026-04 | ✅ |
-| Phase 3.6-3.9 (Advanced Features) | 2026-04-26 | ✅ |
-| **Production Ready** | **2026-04-26** | **✅** |
+| Phase 1–3 | April 2026 | ✅ |
+| Recipe pipeline rewrite | April 26, 2026 | ✅ |
+| Recipe-to-cart end-to-end | April 26, 2026 | ✅ |
+| Catalog expanded (58 SKUs) | April 26, 2026 | ✅ |
+| Phase 4 Recipe Library | TBD | 🔨 |
+| Phase 5 Social Import | TBD | 📋 |
+| Phase 6 Charlie | TBD | 📋 |
+| Phase 7 Nutrition | TBD | 📋 |
+| Phase 8 Hardware | TBD | 📋 |
 
 ---
-
-## Success Metrics (Phase 3)
-
-- ✅ 9 fully functional web tabs
-- ✅ 6 AI agents operational
-- ✅ 12 React components built
-- ✅ 20+ API endpoints
-- ✅ ~9,700 lines of code
-- ✅ 0 known bugs
-- ✅ 100% feature completion
-- ✅ Real Swiggy integration working
-- ✅ Photo scanning operational
-- ✅ Analytics dashboard complete
-
----
-
-## What's Next?
-
-**Immediate (Optional):**
-- Deploy to cloud (Vercel + Railway)
-- File Swiggy production URL whitelist
-- Expand Telegram bot features
-- Add more insights to analytics
-
-**Short-term (Phase 4):**
-- Begin hardware procurement
-- Test camera integration
-- Prototype weight sensors
-- Design physical installation
-
-**Long-term (Phase 5+):**
-- Multi-user authentication
-- Cloud scaling
-- Historical analytics
-- Advanced ML features
-
----
-
-## Decision Log
-
-### Key Architectural Decisions:
-1. **Next.js over vanilla React** - Better DX, SSR capable
-2. **React Query over Redux** - Simpler API state management
-3. **OAuth 2.0 PKCE** - Industry standard, secure
-4. **Mock/Real mode toggle** - Safe development without real orders
-5. **Photo intent selection** - User control over inventory changes
-6. **Single-page tabs** - Better UX than multi-page routing
-
-### Technology Choices:
-- **FastAPI** - Fast, async, auto-docs
-- **SQLite** - Simple for single-user, easy migration path
-- **TypeScript** - Type safety, better DX
-- **Tailwind** - Rapid UI development
-- **LangChain** - LLM orchestration framework
-
----
-
-## Lessons Learned
-
-### What Worked Well:
-- Modular agent architecture
-- Force-agent routing for chat
-- Intent-based photo scanning
-- Mock mode for safe testing
-- Comprehensive documentation
-
-### What We'd Do Differently:
-- Start with WebSockets for real-time
-- Use Redis from day 1
-- PostgreSQL instead of SQLite migration
-- More unit tests earlier
-
----
-
-## Community & Contributions
-
-This is a personal project, but:
-- Open to bug reports
-- Feature suggestions welcome
-- Fork and customize freely
-- Share your improvements!
-
----
-
-**Current Status:** Phase 3 Complete - Production Ready! 🎉
-
-**Next Major Milestone:** Phase 4 Hardware Integration
 
 **Last Updated:** April 26, 2026

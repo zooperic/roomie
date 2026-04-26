@@ -1,7 +1,13 @@
 import json
+import asyncio
+import logging
 from shared.models import Intent
 import os
 from fastapi import FastAPI, HTTPException
+
+# Silence httpx INFO logs (Telegram polling noise, Ollama request logs)
+# Keep WARNING+ so real errors still surface
+logging.getLogger("httpx").setLevel(logging.WARNING)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -57,7 +63,8 @@ class MessageRequest(BaseModel):
     user_id: str = "default"
     session_id: Optional[str] = None
     force_agent: Optional[str] = None
-    image_data: Optional[str] = None  # Skip routing, go directly to this agent
+    image_data: Optional[str] = None
+    parameters: Optional[dict] = None  # Pre-extracted params, skips router extraction
 
 
 class ConfirmActionRequest(BaseModel):
@@ -84,7 +91,7 @@ async def dashboard():
 @app.post("/message")
 async def receive_message(req: MessageRequest):
     from agent_skills.alfred.router import AGENT_REGISTRY
-    
+
     if req.force_agent:
         if req.force_agent == "alfred":
             intent = await route_intent(req.message, user_id=req.user_id)
@@ -92,11 +99,24 @@ async def receive_message(req: MessageRequest):
             agent = AGENT_REGISTRY.get(req.force_agent)
             if not agent:
                 raise HTTPException(status_code=404, detail=f"Agent '{req.force_agent}' not found")
-            
-            intent = await route_intent(req.message, user_id=req.user_id)
-            intent.target_agent = req.force_agent
-            
-            # Pass image_data to parameters
+
+            # SKIP route_intent when force_agent is set — saves 30-120s on local LLMs.
+            # We still need an action; use pre-extracted params if provided, else
+            # do a fast lightweight intent parse just to get action/params.
+            if req.parameters:
+                # Caller passed fully-resolved parameters — zero routing overhead.
+                intent = Intent(
+                    raw_message=req.message,
+                    target_agent=req.force_agent,
+                    action=req.parameters.pop("action", "parse_recipe"),
+                    parameters=req.parameters,
+                    user_id=req.user_id,
+                )
+            else:
+                # Still route for action extraction, but override target_agent.
+                intent = await route_intent(req.message, user_id=req.user_id)
+                intent.target_agent = req.force_agent
+
             if req.image_data:
                 intent.parameters['image_data'] = req.image_data
         
@@ -144,10 +164,13 @@ async def receive_message(req: MessageRequest):
     return {
         "agent": response.agent,
         "result": response.result,
+        "response": response.result,   # backward compat for old client code
         "message": response.result,
         "action_type": response.action_type,
         "confidence": response.confidence,
-        "error": response.error
+        "suggested_action": response.suggested_action,
+        "suggested_action_payload": response.suggested_action_payload,
+        "error": response.error,
     }
 
 @app.post("/confirm")
@@ -379,6 +402,82 @@ async def add_pantry_item(request: dict):
     except Exception as e:
         print(f"[Alfred] Add pantry item error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class RecipeParseRequest(BaseModel):
+    """
+    Direct recipe parse request — bypasses LLM router entirely.
+    The web UI sends structured params here; no routing overhead.
+    """
+    input: str               # URL, dish name, or recipe text
+    mode: str = "dish"       # "url" | "text" | "dish"
+    servings: Optional[int] = None
+    user_id: str = "web-user"
+
+
+@app.post("/recipes/parse")
+async def parse_recipe_direct(req: RecipeParseRequest):
+    """
+    Parse a recipe via Remy, bypassing Alfred's LLM router entirely.
+    This is the fast path — no route_intent() call, no double LLM.
+    Saves 30-120s on local Ollama, and eliminates routing errors.
+    """
+    from agent_skills.alfred.router import AGENT_REGISTRY
+    from shared.models import Intent
+
+    remy = AGENT_REGISTRY.get("remy")
+    if not remy:
+        raise HTTPException(status_code=500, detail="Remy not available")
+
+    intent = Intent(
+        raw_message=req.input,
+        target_agent="remy",
+        action="parse_recipe",
+        parameters={
+            "url": req.input if req.mode == "url" else None,
+            "text": req.input if req.mode == "text" else None,
+            "item": req.input if req.mode == "dish" else None,
+            "servings": req.servings,
+        },
+        user_id=req.user_id,
+    )
+
+    try:
+        print(f"[Remy] Starting parse: mode={req.mode}, input={req.input[:60]}..., servings={req.servings}")
+        import time
+        t0 = time.time()
+        response = await asyncio.wait_for(remy.handle(intent), timeout=180.0)
+        elapsed = time.time() - t0
+        print(f"[Remy] Parse complete in {elapsed:.1f}s")
+        return {
+            "agent": response.agent,
+            "result": response.result,
+            "suggested_action": response.suggested_action,
+            "suggested_action_payload": response.suggested_action_payload,
+            "error": response.error,
+        }
+    except asyncio.TimeoutError:
+        print(f"[Remy] Parse timed out after 180s")
+        return {
+            "agent": "remy",
+            "result": (
+                "Took over 3 minutes — the local model is too slow for this. "
+                "Set LLM_PROVIDER=claude in your .env and add your ANTHROPIC_API_KEY. "
+                "Haiku is fast and cheap for recipe parsing."
+            ),
+            "error": "timeout",
+        }
+    except Exception as e:
+        print(f"[Alfred] /recipes/parse error: {e}")
+        return {
+            "agent": "remy",
+            "result": (
+                "Hmm, something went wrong parsing that recipe. "
+                "Try a different link or paste the ingredients directly."
+            ),
+            "error": str(e),
+        }
+
 
 @app.post("/build_cart")
 async def build_cart(request: dict):

@@ -485,12 +485,16 @@ class LebowskiAgent(BaseAgent):
         total = subtotal + delivery_fee
 
         cart_data = {
-            "items": valid_items,
+            "matched_items": valid_items,   # what the frontend expects
+            "items": valid_items,           # keep for backward compat
             "categories": categories,
             "item_count": len(valid_items),
+            "successfully_matched": len(valid_items),
+            "total_items": len(valid_items),
             "subtotal": subtotal,
             "delivery_fee": delivery_fee,
             "total": total,
+            "total_cost": total,            # frontend reads total_cost too
             "platform": "Swiggy Instamart (Mock)",
         }
 
