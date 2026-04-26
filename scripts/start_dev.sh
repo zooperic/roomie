@@ -8,8 +8,11 @@ set -e
 echo "🏠 Starting Project Roomy..."
 
 # Load environment variables
-export $(grep -v '^#' .env | xargs)
-
+if [ -f .env ]; then
+    set -a
+    source <(grep -v '^#' .env | sed 's/#.*//' | sed '/^$/d')
+    set +a
+fi
 # Initialize DB if not exists
 python -c "from shared.db import init_db; init_db()"
 

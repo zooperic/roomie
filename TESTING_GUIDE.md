@@ -1,682 +1,386 @@
-# Phase 2 Testing Guide
-> Recipe & Procurement System - Complete Implementation
+# ROOMIE Testing Guide
 
-## 🚀 Quick Start
+**Version:** Phase 3 Complete  
+**Last Updated:** April 26, 2026
 
-### 1. Start the System
+---
+
+## Overview
+
+This guide covers all testing procedures for ROOMIE system validation.
+
+---
+
+## Pre-Testing Setup
+
 ```bash
+# 1. Start backend
 cd ~/Desktop/meh/roomie
 bash scripts/start_dev.sh
-```
 
-This starts:
-- Alfred API (port 8000)
-- Telegram bots (if tokens configured)
-- All agents: Alfred, Elsa, Remy, Lebowski
+# 2. Start frontend (new terminal)
+cd roomie-web
+npm run dev
 
-### 2. Verify Health
-```bash
-python3 scripts/health_check.py
-```
+# 3. Open browser
+# http://localhost:3001
 
-Expected output:
-```
-✓ Alfred API is running
-✓ Message routing works
-✓ Alfred agent: ONLINE
-✓ Elsa agent: ONLINE
-✓ Remy agent: ONLINE
-✓ Lebowski agent: ONLINE
-```
-
-### 3. Run Tests
-```bash
-python3 scripts/test_all.py
-```
-
-This runs comprehensive tests for:
-- Alfred natural greetings
-- Multi-LLM routing
-- Elsa fridge operations
-- Remy recipe parsing (all 3 modes)
-- Lebowski catalog matching
-- End-to-end recipe-to-cart flow
-
----
-
-## 🧪 Manual Testing Guide
-
-### Test 1: Natural Greetings (Phase 1 Fix)
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "hi",
-    "user_id": "test_user"
-  }'
-```
-
-**Expected:** Different greeting each time (not hardcoded)
-
----
-
-### Test 2: Multi-LLM Routing (Phase 1 Feature)
-
-Watch Alfred console for model selection logs:
-```
-[LLM] Using model: qwen2.5:7b        # Chat tasks
-[VISION] Using model: qwen2.5vl:7b   # Photo tasks
-[LLM] Using model: deepseek-r1:8b    # Reasoning tasks
+# 4. Clear cache (first time)
+# Mac: Cmd+Shift+R
+# Windows: Ctrl+Shift+R
 ```
 
 ---
 
-### Test 3: Remy Recipe Parsing
+## Test Checklist
 
-#### Mode 1: Dish Name
+### ✅ System Health
+
+- [ ] Alfred API responds at http://localhost:8000/health
+- [ ] Frontend loads at http://localhost:3001
+- [ ] No errors in browser console
+- [ ] All 9 tabs visible in navigation
+
+---
+
+### ✅ Tab 1: Overview
+
+- [ ] Shows 3 cards (Fridge, Pantry, Agents)
+- [ ] Counts are accurate
+- [ ] Cards are clickable
+- [ ] Hover shows colored borders (green/orange/blue)
+- [ ] Clicking Fridge/Pantry goes to Inventory tab
+- [ ] Clicking Agents goes to Roomies tab
+
+---
+
+### ✅ Tab 2: Inventory
+
+**Fridge Section:**
+- [ ] List displays all fridge items
+- [ ] Search filter works
+- [ ] Category badges visible
+- [ ] Low stock items highlighted (amber)
+- [ ] Click "ADD ITEM" opens form
+- [ ] Add new item → appears in list
+- [ ] Edit item → changes persist
+- [ ] Delete item → removed from list
+- [ ] Real-time polling (updates every 10s)
+
+**Pantry Section:**
+- [ ] Same tests as Fridge
+- [ ] Items separate from fridge
+
+---
+
+### ✅ Tab 3: Recipe
+
+**Dish Name Mode:**
+- [ ] Enter "Paneer Tikka"
+- [ ] Click "PARSE RECIPE"
+- [ ] Shows ingredient list
+- [ ] Available items (green badges)
+- [ ] Missing items (amber cards with "SHOP NOW")
+- [ ] Click "SHOP NOW" → Goes to Shopping tab
+
+**Recipe URL Mode:**
+- [ ] Paste recipe URL
+- [ ] Parse works
+- [ ] Shows ingredients
+
+**Paste Recipe Mode:**
+- [ ] Paste raw recipe text
+- [ ] Parse works
+- [ ] Shows ingredients
+
+---
+
+### ✅ Tab 4: Shopping
+
+**Manual Mode:**
+- [ ] Add item manually
+- [ ] Shows in cart
+- [ ] Category grouping works
+- [ ] Price breakdown visible
+- [ ] Total calculated correctly
+
+**From Recipe:**
+- [ ] Come from Recipe tab via "SHOP NOW"
+- [ ] Missing items auto-populated
+- [ ] Can add more items
+- [ ] "PLACE ORDER" button enabled
+
+**Mock Mode (default):**
+- [ ] SWIGGY_MCP_ENABLED=false in .env
+- [ ] Place order
+- [ ] Success message shown
+- [ ] No real API calls
+
+**Real Mode (optional):**
+- [ ] SWIGGY_MCP_ENABLED=true
+- [ ] First order opens OAuth
+- [ ] Login to Swiggy
+- [ ] Tokens saved
+- [ ] Order placed successfully
+- [ ] ⚠️ REAL MONEY - Be careful!
+
+---
+
+### ✅ Tab 5: Scan
+
+**Upload Methods:**
+- [ ] Drag & drop image works
+- [ ] Click to browse works
+- [ ] Image preview shows
+- [ ] Remove photo works
+
+**Intent Selection:**
+- [ ] Three options visible
+- [ ] Can select "Adding Items" (green)
+- [ ] Can select "Used Items" (orange)
+- [ ] Can select "General Scan" (blue)
+
+**Scanning:**
+- [ ] Upload fridge photo
+- [ ] Select intent
+- [ ] Click "SCAN NOW"
+- [ ] Shows detected items
+- [ ] Confidence scores displayed
+- [ ] If "Adding" → Inventory updated
+- [ ] If "Used" → Inventory decremented
+- [ ] If "General" → No changes
+
+**Tips Section:**
+- [ ] Tips displayed at bottom
+- [ ] Grid layout works
+
+---
+
+### ✅ Tab 6: Chat
+
+**Agent Selection:**
+- [ ] 6 agent buttons visible
+- [ ] Each has emoji and color
+- [ ] Can click to select
+- [ ] Selected agent highlighted
+
+**Messaging:**
+- [ ] Type message
+- [ ] Press Enter sends
+- [ ] Shift+Enter adds new line
+- [ ] User message appears (right side)
+- [ ] Agent response appears (left side)
+- [ ] Timestamps shown
+- [ ] Auto-scroll to bottom
+
+**Test Messages:**
+- Alfred: "What can you do?"
+- Elsa: "What's in my fridge?"
+- Remy: "Can I make Paneer Tikka?"
+- Lebowski: "Find milk on Swiggy"
+- Finn: "What's my stock health?"
+- Iris: "Help me scan a photo"
+
+**Switch Agents:**
+- [ ] Click different agent
+- [ ] Chat resets (new conversation)
+- [ ] Color theme changes
+
+---
+
+### ✅ Tab 7: Analytics
+
+**Key Metrics:**
+- [ ] Stock Health Score shows (0-100%)
+- [ ] Total Items correct
+- [ ] Low Stock count accurate
+- [ ] Categories count shown
+
+**Insights:**
+- [ ] At least one insight shows
+- [ ] Low stock alert (if applicable)
+- [ ] Well stocked message (if health >80%)
+- [ ] Category leader shown
+
+**Category Breakdown:**
+- [ ] Bar charts visible
+- [ ] Percentages shown
+- [ ] Colors differentiated
+- [ ] Top 5 categories displayed
+
+**Low Stock Details:**
+- [ ] Shows if items low
+- [ ] Current quantities
+- [ ] Thresholds displayed
+
+---
+
+### ✅ Tab 8: Roomies
+
+**Agent Cards:**
+- [ ] All 6 agents displayed
+- [ ] Emojis and colors correct
+- [ ] Quotes showing
+- [ ] Skills badges visible
+- [ ] Quirks listed
+- [ ] Fun facts shown
+
+**Status:**
+- [ ] Live status indicators
+- [ ] Agent summaries (if available)
+
+**Polling:**
+- [ ] Updates every 30s
+- [ ] No excessive refreshing
+
+---
+
+### ✅ Tab 9: Events
+
+- [ ] Event log displays
+- [ ] Recent events shown
+- [ ] Timestamps correct
+- [ ] Agent names shown
+- [ ] Event types visible
+
+---
+
+## Integration Tests
+
+### End-to-End Workflow 1: Shopping from Recipe
+
+```
+1. Go to Recipe tab
+2. Enter "Paneer Tikka"
+3. Parse recipe
+4. Note missing items
+5. Click "SHOP NOW"
+6. Verify items in cart
+7. Place order (mock mode)
+8. Verify success message
+```
+
+**Expected:** Complete flow without errors
+
+---
+
+### End-to-End Workflow 2: Photo Scan to Analytics
+
+```
+1. Go to Scan tab
+2. Upload fridge photo
+3. Select "Adding Items"
+4. Scan
+5. Note detected items
+6. Go to Inventory tab
+7. Verify items added
+8. Go to Analytics tab
+9. Check stock health improved
+```
+
+**Expected:** Inventory updated, analytics reflect changes
+
+---
+
+### End-to-End Workflow 3: Chat to Action
+
+```
+1. Go to Chat tab
+2. Select Elsa
+3. Type: "I used 2 eggs"
+4. Press Enter
+5. Wait for response
+6. Go to Inventory
+7. Check eggs quantity decreased
+```
+
+**Expected:** Conversational inventory update
+
+---
+
+## API Tests
+
+### Health Check
+```bash
+curl http://localhost:8000/health
+# Expected: {"status":"healthy","service":"alfred"}
+```
+
+### Get Inventory
+```bash
+curl http://localhost:8000/inventory/fridge
+# Expected: JSON array of items
+```
+
+### Send Message
 ```bash
 curl -X POST http://localhost:8000/message \
   -H "Content-Type: application/json" \
-  -d '{
-    "message": "Can I make Paneer Butter Masala?",
-    "user_id": "test_user",
-    "force_agent": "remy"
-  }'
-```
-
-**Expected:**
-```json
-{
-  "dish": "Paneer Butter Masala",
-  "total_ingredients": 12,
-  "available": ["onion", "tomato"],
-  "missing": [
-    {"name": "paneer", "quantity": 200, "unit": "g"},
-    {"name": "kasuri methi", "quantity": 10, "unit": "g"}
-  ]
-}
-```
-
-#### Mode 2: Copy-Paste Text
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "Parse this recipe: Pasta Carbonara. Ingredients: 400g spaghetti, 200g bacon, 4 eggs, 100g parmesan",
-    "user_id": "test_user",
-    "force_agent": "remy"
-  }'
-```
-
-#### Mode 3: URL (requires web_fetch)
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "Parse this recipe: https://example.com/recipe/paneer-tikka",
-    "user_id": "test_user",
-    "force_agent": "remy"
-  }'
+  -d '{"message":"What is in my fridge?","user_id":"test"}'
+# Expected: {"status":"ok","result":"...","agent":"elsa"}
 ```
 
 ---
 
-### Test 4: Lebowski Catalog Matching
+## Performance Tests
 
-#### English Query
+### Response Times
+- Health check: <100ms
+- Inventory list: <500ms
+- Recipe parse: 2-5s (LLM)
+- Photo scan: 3-8s
+- Chat message: 1-3s
+
+### Load Test (Optional)
 ```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "find milk on swiggy",
-    "user_id": "test_user",
-    "force_agent": "lebowski"
-  }'
-```
-
-**Expected:**
-```json
-{
-  "matched_items": [{
-    "query": "milk",
-    "matched": "Amul Taaza Toned Milk",
-    "sku": "AMUL-MILK-1L",
-    "price": 60,
-    "quantity": 1
-  }]
-}
-```
-
-#### Hinglish Query
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "find haldi on swiggy",
-    "user_id": "test_user",
-    "force_agent": "lebowski"
-  }'
-```
-
-**Expected:** Translates "haldi" → "turmeric" → Matches MDH Turmeric Powder
-
-#### Pack-Size Rounding
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "find kasuri methi 10g",
-    "user_id": "test_user",
-    "force_agent": "lebowski"
-  }'
-```
-
-**Expected:** Matches 25g pack (rounds up from 10g)
-
----
-
-### Test 5: End-to-End Recipe-to-Cart
-
-#### Step 1: Parse Recipe
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "I want to make Pasta Carbonara",
-    "user_id": "test_user",
-    "force_agent": "remy"
-  }'
-```
-
-Get the missing items list from response.
-
-#### Step 2: Match to Catalog
-```bash
-# Use missing items from Step 1
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "find spaghetti, bacon, eggs on swiggy",
-    "user_id": "test_user",
-    "force_agent": "lebowski"
-  }'
-```
-
-#### Step 3: Build Cart
-(In production, this flows automatically)
-
----
-
-## 📊 What to Check
-
-### Phase 1 Fixes
-- ✅ **No duplicate returns** in llm_provider.py
-- ✅ **Natural greetings** - different responses each time
-- ✅ **Model selection logs** - correct model for each task
-- ✅ **No format_result duplicates** - clean output
-
-### Phase 2 Features
-
-#### Remy Agent
-- ✅ All 3 recipe parsing modes work
-- ✅ Cross-checks both fridge (Elsa) and pantry (Remy)
-- ✅ Returns missing items with quantities
-- ✅ Meal suggestions based on inventory
-
-#### Lebowski Agent
-- ✅ Hinglish translation works (50+ mappings)
-- ✅ Catalog matching with IDF scoring
-- ✅ Pack-size rounding (always rounds up)
-- ✅ Cart building with price calculation
-- ✅ Mock order placement ready
-
----
-
-## 🐛 Troubleshooting
-
-### Alfred won't start
-```bash
-# Check if port 8000 is in use
-lsof -i :8000
-
-# Kill existing process
-kill -9 <PID>
-
-# Restart
-bash scripts/start_dev.sh
-```
-
-### Agent not responding
-```bash
-# Check logs
-tail -f alfred.log
-
-# Verify agent is registered
-python3 scripts/health_check.py
-```
-
-### Model not found (Ollama)
-```bash
-# List installed models
-ollama list
-
-# Pull missing models
-ollama pull qwen2.5:7b
-ollama pull qwen2.5vl:7b
-ollama pull deepseek-r1:8b
-ollama pull qwen2.5-coder:7b
-```
-
-### Import errors
-```bash
-# Reinstall dependencies
-pip install -r requirements.txt --break-system-packages
+# Install Apache Bench
+# Run 100 requests
+ab -n 100 -c 10 http://localhost:8000/health
 ```
 
 ---
 
-## 🔄 Testing Recipe-to-Cart via Telegram
+## Regression Tests
 
-If you have Telegram bots configured:
-
-1. **Test Remy directly:**
-   ```
-   @remy_roomie_bot Can I make Paneer Lababdar?
-   ```
-
-2. **Test Lebowski directly:**
-   ```
-   @lebowski_roomie_bot find milk and eggs on swiggy
-   ```
-
-3. **Test via Alfred (auto-routing):**
-   ```
-   @alfred_roomie_bot I want to cook pasta carbonara tonight
-   ```
-   Alfred will route to Remy → parse recipe → check inventory → return missing items
+After any code changes, run through:
+1. ✅ System Health checklist
+2. ✅ All 9 tabs basic functionality
+3. ✅ At least one E2E workflow
+4. ✅ API health check
 
 ---
 
-## 📝 Expected Test Results
+## Bug Reporting
 
-### All Green (Success)
-```
-✓ Alfred generates varied, natural greetings
-✓ Multi-LLM routing working
-✓ Elsa inventory operations work
-✓ Remy recipe parsing (all modes)
-✓ Remy pantry management works
-✓ Lebowski catalog matching works
-✓ Hinglish translation works
-✓ Pack-size rounding works
-✓ End-to-end flow demonstrated
-```
+If you find issues:
 
-### If Tests Fail
-1. Check Alfred console for error messages
-2. Verify all models are installed (Ollama)
-3. Check database is initialized
-4. Verify network connectivity (for URL fetching)
-5. Check logs in `alfred.log`
+1. **Note the steps to reproduce**
+2. **Check browser console for errors**
+3. **Check alfred.log for backend errors**
+4. **Note your environment:**
+   - OS
+   - Python version
+   - Node version
+   - Browser
 
 ---
 
-## 🎯 Next Steps After Testing
+## Known Issues
 
-1. **Test with real recipes** - Try actual recipe URLs
-2. **Build up inventory** - Add items to fridge and pantry
-3. **Test meal planning** - Ask Remy for suggestions
-4. **Verify Hinglish** - Test with Indian ingredient names
-5. **Monitor model selection** - Verify correct models used
+### None!
+All Phase 3 bugs resolved as of April 26, 2026.
 
 ---
 
-## 🚧 Known Limitations (Mock Mode)
+## Test Automation (Future)
 
-- **Swiggy orders are MOCK** - No real orders placed
-- **Limited catalog** - 33 products (expandable)
-- **URL recipe fetching** - Requires web_fetch implementation
-- **No price history** - Price tracking not yet implemented
-
-**Switch to Real Swiggy MCP:**
-1. Get credentials from Swiggy Builders Club
-2. Update `lebowski/main.py` → `_place_order()` function
-3. Replace mock API calls with real MCP calls
-4. Test with small order first
+**Phase 4 TODO:**
+- Playwright for E2E tests
+- Pytest coverage >80%
+- CI/CD pipeline
+- Automated regression suite
 
 ---
 
-## 📚 Documentation
-
-- **SESSION_SUMMARY_PHASE2.md** - Complete implementation details
-- **ROADMAP.md** - Phase 3 plans and future features
-- **agent_skills/*/SKILLS.md** - Individual agent specifications
-
----
-
-## ✅ Testing Checklist
-
-Before marking Phase 2 complete:
-
-- [ ] Health check passes
-- [ ] All agents respond
-- [ ] Natural greetings work
-- [ ] Remy parses recipes (all 3 modes)
-- [ ] Lebowski matches catalog
-- [ ] Hinglish translation works
-- [ ] Pack-size rounding works
-- [ ] Mock orders generate order IDs
-- [ ] Model selection logs visible
-- [ ] No Python errors in console
-
-**When all checked:** Phase 2 is production-ready (with mock MCP)! 🎉
-
----
-
-## 🧪 Comprehensive Test Scenarios
-
-### Database Reset (Fresh Start)
-```bash
-cd ~/Desktop/meh/roomie
-rm roomie.db
-bash scripts/start_dev.sh
-```
-
-### Test Suite: Elsa (Fridge Manager)
-
-#### Add Item
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "add milk 1 liter",
-    "user_id": "test",
-    "force_agent": "elsa"
-  }'
-```
-
-#### View Inventory
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "show fridge contents",
-    "user_id": "test",
-    "force_agent": "elsa"
-  }'
-```
-
-#### Subtract Quantity
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "use milk 500ml",
-    "user_id": "test",
-    "force_agent": "elsa"
-  }'
-```
-
-#### Remove Item
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "remove milk",
-    "user_id": "test",
-    "force_agent": "elsa"
-  }'
-```
-
-#### Low Stock Check
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "what is low in stock?",
-    "user_id": "test",
-    "force_agent": "elsa"
-  }'
-```
-
----
-
-### Test Suite: Remy (Recipe & Pantry)
-
-#### Add to Pantry
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "add rice 5kg to pantry",
-    "user_id": "test",
-    "force_agent": "remy"
-  }'
-```
-
-#### View Pantry
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "show pantry",
-    "user_id": "test",
-    "force_agent": "remy"
-  }'
-```
-
-#### Meal Suggestions
-```bash
-# First add some ingredients
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "add rice 2kg, dal 1kg, onions 500g to pantry",
-    "user_id": "test",
-    "force_agent": "remy"
-  }'
-
-# Ask for suggestions
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "What can I cook with what I have?",
-    "user_id": "test",
-    "force_agent": "remy"
-  }'
-```
-
----
-
-### Test Suite: Lebowski (Procurement)
-
-#### Hinglish Translation Test
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "match catalog for haldi, dhaniya, jeera, atta, chawal",
-    "user_id": "test",
-    "force_agent": "lebowski"
-  }'
-```
-
-**Expected Translations:**
-- haldi → turmeric
-- dhaniya → coriander  
-- jeera → cumin
-- atta → wheat flour
-- chawal → rice
-
-#### Pack-Size Rounding Test
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "I need kasuri methi 10g",
-    "user_id": "test",
-    "force_agent": "lebowski"
-  }'
-```
-**Expected:** Match 25g pack (smallest that fits 10g need)
-
-#### Build Cart
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "build cart for: paneer 500g, yogurt 200g, kasuri methi 2 tbsp, cream 200ml",
-    "user_id": "test",
-    "force_agent": "lebowski"
-  }'
-```
-
-**Expected:**
-- Products matched and grouped by category
-- Subtotal + delivery fee calculated
-- Total shown
-
-#### Place Order (Mock)
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "place order",
-    "user_id": "test",
-    "force_agent": "lebowski"
-  }'
-```
-
-**Expected:**
-- Mock order confirmation
-- Order ID generated
-- ETA shown (~30 min)
-
----
-
-### End-to-End: Complete Recipe-to-Cart Flow
-
-**Step 1: Reset & Parse Recipe**
-```bash
-# Clear database
-rm roomie.db
-bash scripts/start_dev.sh
-
-# Parse recipe with all ingredients
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "Can I make Paneer Tikka? Ingredients: 500g paneer, 200g yogurt, 2 tbsp kasuri methi, 1 tsp haldi, 2 tsp red chili powder, 2 tbsp cream",
-    "user_id": "test",
-    "force_agent": "remy"
-  }'
-```
-**Expected:** All items missing (empty fridge/pantry)
-
-**Step 2: Build Cart**
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "build cart for: paneer 500g, yogurt 200g, kasuri methi 2 tbsp, haldi 1 tsp, red chili powder 2 tsp, cream 200ml",
-    "user_id": "test",
-    "force_agent": "lebowski"
-  }'
-```
-
-**Expected:**
-- All items matched from catalog
-- Hinglish translated (haldi → turmeric)
-- Pack sizes rounded appropriately
-- Total cart value shown
-
-**Step 3: Place Order**
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "place order",
-    "user_id": "test",
-    "force_agent": "lebowski"
-  }'
-```
-
-**Expected:** Mock order confirmation
-
----
-
-### Edge Case Tests
-
-#### Empty Inventory
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "show fridge",
-    "user_id": "test",
-    "force_agent": "elsa"
-  }'
-```
-**Expected:** "Fridge is empty" or empty list
-
-#### Remove Non-Existent Item
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "remove dragon fruit",
-    "user_id": "test",
-    "force_agent": "elsa"
-  }'
-```
-**Expected:** Error: "Dragon fruit not in fridge"
-
-#### Subtract More Than Available
-```bash
-# Add 500ml milk
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{"message": "add milk 500ml", "user_id": "test", "force_agent": "elsa"}'
-
-# Try to use 1L
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{"message": "use milk 1000ml", "user_id": "test", "force_agent": "elsa"}'
-```
-**Expected:** Error: "Not enough milk (have 500ml, need 1000ml)"
-
-#### Unknown Ingredient
-```bash
-curl -X POST http://localhost:8000/message \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "match catalog for unicorn tears",
-    "user_id": "test",
-    "force_agent": "lebowski"
-  }'
-```
-**Expected:** "Product not found in catalog"
-
----
-
-### Common Issues & Solutions
-
-#### Issue: Timeout on First Request
-**Cause:** Ollama loading model into memory  
-**Solution:** Wait 30-60s, timeout now set to 60s in scripts
-
-#### Issue: "No agent named 'X' is registered"
-**Cause:** Alfred API didn't start properly  
-**Solution:** Check startup logs, restart with auto-kill script
-
-#### Issue: 404 on /message endpoint
-**Cause:** Port 8000 not running Alfred  
-**Solution:** `lsof -ti:8000 | xargs kill -9`, then restart
-
-#### Issue: Empty LLM responses
-**Cause:** Ollama not running or model not pulled  
-**Solution:** `ollama pull qwen2.5:7b`, verify Ollama running
-
-#### Issue: Database locked
-**Cause:** Multiple processes accessing DB  
-**Solution:** Stop all processes, restart cleanly
+**Last Updated:** April 26, 2026  
+**Status:** Manual testing complete, automation planned

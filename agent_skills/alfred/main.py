@@ -14,15 +14,30 @@ from agent_skills.alfred.router import route_intent, dispatch, register_agent
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    
+    # Check if real Swiggy MCP should be used
+    use_swiggy_mcp = os.getenv("SWIGGY_MCP_ENABLED", "false").lower() == "true"
+    
     # Register agents
     from agent_skills.alfred.agent import AlfredAgent
     from agent_skills.elsa.main import ElsaAgent
     from agent_skills.remy.main import RemyAgent
     from agent_skills.lebowski.main import LebowskiAgent
+    from agent_skills.iris.main import Iris
+    from agent_skills.finn.main import Finn
+    
     register_agent(AlfredAgent())
     register_agent(ElsaAgent())
     register_agent(RemyAgent())
-    register_agent(LebowskiAgent())
+    register_agent(LebowskiAgent(use_real_mcp=use_swiggy_mcp))
+    register_agent(Iris())
+    register_agent(Finn())
+    
+    if use_swiggy_mcp:
+        print("[Alfred] Swiggy MCP REAL mode enabled - will use OAuth authentication")
+    else:
+        print("[Alfred] Swiggy MCP MOCK mode - using local catalog")
+    
     print("[Alfred] Online. All agents registered.")
     yield
     print("[Alfred] Shutting down.")
@@ -37,7 +52,8 @@ class MessageRequest(BaseModel):
     message: str
     user_id: str = "default"
     session_id: Optional[str] = None
-    force_agent: Optional[str] = None  # Skip routing, go directly to this agent
+    force_agent: Optional[str] = None
+    image_data: Optional[str] = None  # Skip routing, go directly to this agent
 
 
 class ConfirmActionRequest(BaseModel):
@@ -67,16 +83,25 @@ async def receive_message(req: MessageRequest):
     
     # If force_agent is specified, use Alfred's router for action classification but force the target
     if req.force_agent:
-        # Verify agent exists
-        agent = AGENT_REGISTRY.get(req.force_agent)
-        if not agent:
-            raise HTTPException(status_code=404, detail=f"Agent '{req.force_agent}' not found")
-        
-        # Use Alfred's normal router to classify the action
-        intent = await route_intent(req.message, user_id=req.user_id)
-        
-        # Override the target agent to the forced one
-        intent.target_agent = req.force_agent
+        # Special case: If forcing Alfred, let him route naturally
+        if req.force_agent == "alfred":
+            # Normal routing through Alfred - he'll delegate
+            intent = await route_intent(req.message, user_id=req.user_id)
+            response = await dispatch(intent)
+        else:
+            # Force to specific agent (Elsa, Remy, etc.)
+            agent = AGENT_REGISTRY.get(req.force_agent)
+            if not agent:
+                raise HTTPException(status_code=404, detail=f"Agent '{req.force_agent}' not found")
+            
+            intent = await route_intent(req.message, user_id=req.user_id)
+            intent.target_agent = req.force_agent
+
+            # Pass image_data to parameters
+            if req.image_data:
+                intent.parameters['image_data'] = req.image_data
+
+            response = await dispatch(intent)
         
         response = await dispatch(intent)
     else:
@@ -260,6 +285,13 @@ async def status():
     return {"alfred": "online", "agents": agent_statuses, "pending_confirmations": len(pending_confirmations)}
 
 
+@app.get("/health")
+async def health():
+    """Health check endpoint for frontend"""
+    return {"status": "healthy", "service": "alfred"}
+
+
+
 @app.get("/events")
 async def get_events(limit: int = 50):
     db = SessionLocal()
@@ -274,3 +306,159 @@ async def get_events(limit: int = 50):
 async def list_agents():
     from agent_skills.alfred.router import AGENT_REGISTRY
     return {name: agent.as_registry_entry() for name, agent in AGENT_REGISTRY.items()}
+
+
+# ===== Inventory Endpoints =====
+
+class InventoryItemRequest(BaseModel):
+    name: str
+    quantity: float
+    unit: str
+    category: Optional[str] = None
+    low_stock_threshold: Optional[float] = None
+
+
+@app.get("/inventory/fridge")
+async def get_fridge_inventory():
+    """Get all fridge items"""
+    from agent_skills.alfred.router import AGENT_REGISTRY
+    elsa = AGENT_REGISTRY.get("elsa")
+    if not elsa:
+        raise HTTPException(status_code=503, detail="Elsa agent not available")
+    return await elsa.list_all_items()
+
+
+@app.get("/inventory/pantry")
+async def get_pantry_inventory():
+    """Get all pantry items"""
+    from agent_skills.alfred.router import AGENT_REGISTRY
+    remy = AGENT_REGISTRY.get("remy")
+    if not remy:
+        raise HTTPException(status_code=503, detail="Remy agent not available")
+    return await remy.list_all_items()
+
+
+@app.post("/inventory/fridge")
+async def add_fridge_item(item: InventoryItemRequest):
+    """Add item to fridge"""
+    message = f"add {item.quantity} {item.unit} {item.name}"
+    if item.category:
+        message += f" category {item.category}"
+    
+    request = MessageRequest(
+        message=message,
+        user_id="web-api",
+        force_agent="elsa"
+    )
+    result = await handle_message(request)
+    return {"success": True, "message": result["response"]}
+
+
+@app.post("/inventory/pantry")
+async def add_pantry_item(item: InventoryItemRequest):
+    """Add item to pantry"""
+    message = f"add {item.quantity} {item.unit} {item.name}"
+    if item.category:
+        message += f" category {item.category}"
+    
+    request = MessageRequest(
+        message=message,
+        user_id="web-api",
+        force_agent="remy"
+    )
+    result = await handle_message(request)
+    return {"success": True, "message": result["response"]}
+
+
+@app.put("/inventory/fridge/{item_id}")
+async def update_fridge_item(item_id: int, item: InventoryItemRequest):
+    """Update fridge item"""
+    db = SessionLocal()
+    try:
+        db_item = db.query(InventoryDB).filter(
+            InventoryDB.id == item_id,
+            InventoryDB.agent_owner == "elsa"
+        ).first()
+        
+        if not db_item:
+            raise HTTPException(status_code=404, detail="Item not found")
+        
+        db_item.name = item.name
+        db_item.quantity = item.quantity
+        db_item.unit = item.unit
+        if item.category:
+            db_item.category = item.category
+        if item.low_stock_threshold is not None:
+            db_item.low_stock_threshold = item.low_stock_threshold
+        
+        db.commit()
+        return {"success": True, "item_id": item_id}
+    finally:
+        db.close()
+
+
+@app.put("/inventory/pantry/{item_id}")
+async def update_pantry_item(item_id: int, item: InventoryItemRequest):
+    """Update pantry item"""
+    db = SessionLocal()
+    try:
+        db_item = db.query(InventoryDB).filter(
+            InventoryDB.id == item_id,
+            InventoryDB.agent_owner == "remy"
+        ).first()
+        
+        if not db_item:
+            raise HTTPException(status_code=404, detail="Item not found")
+        
+        db_item.name = item.name
+        db_item.quantity = item.quantity
+        db_item.unit = item.unit
+        if item.category:
+            db_item.category = item.category
+        if item.low_stock_threshold is not None:
+            db_item.low_stock_threshold = item.low_stock_threshold
+        
+        db.commit()
+        return {"success": True, "item_id": item_id}
+    finally:
+        db.close()
+
+
+@app.delete("/inventory/fridge/{item_id}")
+async def delete_fridge_item(item_id: int):
+    """Delete fridge item"""
+    db = SessionLocal()
+    try:
+        db_item = db.query(InventoryDB).filter(
+            InventoryDB.id == item_id,
+            InventoryDB.agent_owner == "elsa"
+        ).first()
+        
+        if not db_item:
+            raise HTTPException(status_code=404, detail="Item not found")
+        
+        db.delete(db_item)
+        db.commit()
+        return {"success": True, "item_id": item_id}
+    finally:
+        db.close()
+
+
+@app.delete("/inventory/pantry/{item_id}")
+async def delete_pantry_item(item_id: int):
+    """Delete pantry item"""
+    db = SessionLocal()
+    try:
+        db_item = db.query(InventoryDB).filter(
+            InventoryDB.id == item_id,
+            InventoryDB.agent_owner == "remy"
+        ).first()
+        
+        if not db_item:
+            raise HTTPException(status_code=404, detail="Item not found")
+        
+        db.delete(db_item)
+        db.commit()
+        return {"success": True, "item_id": item_id}
+    finally:
+        db.close()

@@ -94,6 +94,29 @@ class ElsaAgent(BaseAgent):
                 error="unknown_action",
             )
 
+    async def list_all_items(self) -> list[dict]:
+        """Return all fridge items as structured data for API"""
+        db = SessionLocal()
+        try:
+            items = db.query(InventoryItemDB).filter(
+                InventoryItemDB.agent_owner == AGENT_NAME
+            ).all()
+            
+            return [
+                {
+                    "id": item.id,
+                    "name": item.name,
+                    "quantity": item.quantity,
+                    "unit": item.unit,
+                    "category": item.category,
+                    "low_stock_threshold": item.low_stock_threshold,
+                    "last_updated": item.last_updated.isoformat() if item.last_updated else None,
+                }
+                for item in items
+            ]
+        finally:
+            db.close()
+
     async def get_status(self) -> dict:
         db = SessionLocal()
         try:
@@ -126,12 +149,15 @@ class ElsaAgent(BaseAgent):
             if not items:
                 result = f"'{item}' is not tracked in the fridge." if item else "Fridge inventory is empty."
             else:
-                result = {
-                    "found": [
-                        {"name": i.name, "quantity": i.quantity, "unit": i.unit}
-                        for i in items
-                    ]
-                }
+                result = f"""You have {len(items)} items in your fridge:
+                {chr(10).join(f'• {item.name} - {item.quantity} {item.unit}' for item in items)}"""
+
+                return AgentResponse(
+                    agent=self.name,
+                    result=result,  # Human-readable text
+                    action_type="inform",
+                    confidence=1.0
+                )
             return AgentResponse(agent=AGENT_NAME, result=result, action_type=ActionType.INFORM, confidence=0.95)
         finally:
             db.close()

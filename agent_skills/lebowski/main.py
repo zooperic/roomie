@@ -27,19 +27,28 @@ class LebowskiAgent(BaseAgent):
     )
     version = "0.1.0"
     
-    def __init__(self):
+    def __init__(self, use_real_mcp: bool = False):
         super().__init__()
+        self.use_real_mcp = use_real_mcp
+        self.swiggy_client = None
+        
         # Load Hinglish dictionary
         hinglish_path = os.path.join(os.path.dirname(__file__), "hinglish_dict.json")
         with open(hinglish_path, "r") as f:
             self.hinglish_dict = json.load(f)
         
-        # Load mock catalog
+        # Load mock catalog (fallback)
         catalog_path = os.path.join(os.path.dirname(__file__), "mock_catalog.json")
         with open(catalog_path, "r") as f:
             self.catalog = json.load(f)
         
-        print(f"[Lebowski] Loaded {len(self.catalog)} items from catalog")
+        if use_real_mcp:
+            print(f"[Lebowski] Real Swiggy MCP mode enabled")
+            from shared.swiggy_mcp import SwiggyMCPClient
+            self.swiggy_client = SwiggyMCPClient()
+        else:
+            print(f"[Lebowski] Mock mode - Loaded {len(self.catalog)} items from catalog")
+        
         print(f"[Lebowski] Loaded {len(self.hinglish_dict)} Hinglish translations")
 
     def get_skills(self) -> list[SkillDefinition]:
@@ -94,11 +103,18 @@ class LebowskiAgent(BaseAgent):
             return await self._place_order(cart)
         
         else:
+            # Handle general chat/query
+            response_text = await get_llm_response(
+                prompt=intent.message,
+                system=self.system_prompt,
+                max_tokens=500
+            )
+    
             return AgentResponse(
                 agent=AGENT_NAME,
-                result=f"I don't know how to handle action '{action}'.",
+                result=response_text,
                 action_type=ActionType.INFORM,
-                error="unknown_action",
+                confidence=0.8
             )
 
     async def get_status(self) -> dict:
@@ -228,6 +244,7 @@ class LebowskiAgent(BaseAgent):
     async def _match_catalog(self, items: List) -> AgentResponse:
         """
         Match ingredient list to catalog items
+        Uses real Swiggy MCP if enabled, otherwise uses mock catalog
         Input: ["kasuri methi 10g", "cream 200ml", "paneer"]
         Output: Matched catalog items with SKU, price, quantity
         """
@@ -239,6 +256,92 @@ class LebowskiAgent(BaseAgent):
                 error="missing_items",
             )
 
+        # Use real MCP if available
+        if self.use_real_mcp and self.swiggy_client:
+            return await self._match_catalog_real_mcp(items)
+        
+        # Otherwise use mock catalog (existing logic)
+        return await self._match_catalog_mock(items)
+    
+    async def _match_catalog_real_mcp(self, items: List) -> AgentResponse:
+        """Match items using real Swiggy MCP API"""
+        try:
+            # Ensure authenticated
+            await self.swiggy_client.authenticate()
+            
+            matched_items = []
+            
+            for item_query in items:
+                # Handle dict format
+                if isinstance(item_query, dict):
+                    item_name = item_query.get("name", "")
+                    item_qty = item_query.get("quantity")
+                    item_unit = item_query.get("unit", "units")
+                    query = f"{item_name}"
+                else:
+                    query = str(item_query)
+                    item_qty, item_unit = self._extract_quantity_unit(query)
+                
+                # Translate Hinglish
+                translated = self._translate_hinglish(query)
+                
+                # Search Swiggy
+                results = await self.swiggy_client.search_products(translated)
+                products = results.get('products', [])
+                
+                if not products:
+                    matched_items.append({
+                        "query": query,
+                        "matched": None,
+                        "error": "No matching product found on Swiggy",
+                    })
+                    continue
+                
+                # Take best match (first result from Swiggy)
+                best_match = products[0]
+                pack_qty = 1  # Default
+                
+                matched_items.append({
+                    "query": query,
+                    "matched": best_match.get('name'),
+                    "sku": best_match.get('id'),
+                    "price": best_match.get('price'),
+                    "brand": best_match.get('brand', 'Unknown'),
+                    "pack_size": f"{best_match.get('weight', '')} {best_match.get('unit', '')}",
+                    "quantity": pack_qty,
+                    "total_price": best_match.get('price', 0) * pack_qty,
+                    "category": best_match.get('category', 'general'),
+                    "source": "swiggy_real",
+                })
+            
+            # Build response summary
+            total_cost = sum(item['total_price'] for item in matched_items if item.get('total_price'))
+            
+            result = {
+                "matched_items": matched_items,
+                "total_items": len(matched_items),
+                "total_cost": total_cost,
+                "source": "Swiggy Instamart (Real MCP)",
+                "delivery_fee": 0,  # Swiggy calculates at checkout
+            }
+            
+            return AgentResponse(
+                agent=AGENT_NAME,
+                result=result,
+                action_type=ActionType.INFORM,
+                confidence=0.9,
+            )
+            
+        except Exception as e:
+            return AgentResponse(
+                agent=AGENT_NAME,
+                result=f"Error accessing Swiggy MCP: {str(e)}",
+                action_type=ActionType.INFORM,
+                error="mcp_error",
+            )
+    
+    async def _match_catalog_mock(self, items: List) -> AgentResponse:
+        """Match items using mock catalog (original implementation)"""
         matched_items = []
 
         for item_query in items:
@@ -374,8 +477,7 @@ class LebowskiAgent(BaseAgent):
 
     async def _place_order(self, cart: Dict) -> AgentResponse:
         """
-        Place order via mock Swiggy MCP
-        In production, this would call actual Swiggy API
+        Place order via Swiggy MCP (real or mock)
         """
         if not cart:
             return AgentResponse(
@@ -385,11 +487,60 @@ class LebowskiAgent(BaseAgent):
                 error="empty_cart",
             )
 
-        # Mock order placement
-        # In production: Call Swiggy MCP API here
-        # URL: https://mcp.swiggy.com/im
-        # Method: create_order with cart items
-
+        # Use real MCP if available
+        if self.use_real_mcp and self.swiggy_client:
+            return await self._place_order_real_mcp(cart)
+        
+        # Otherwise mock order
+        return await self._place_order_mock(cart)
+    
+    async def _place_order_real_mcp(self, cart: Dict) -> AgentResponse:
+        """Place order via real Swiggy MCP"""
+        try:
+            # Ensure authenticated
+            await self.swiggy_client.authenticate()
+            
+            # Add items to cart (one by one)
+            for item in cart.get('items', []):
+                await self.swiggy_client.add_to_cart(
+                    product_id=item.get('sku'),
+                    quantity=item.get('quantity', 1)
+                )
+            
+            # Checkout (COD only)
+            result = await self.swiggy_client.checkout(payment_method='COD')
+            
+            order_result = {
+                "order_id": result.get('order_id'),
+                "status": "confirmed",
+                "platform": "Swiggy Instamart (Real MCP)",
+                "items": cart.get('items', []),
+                "total": cart.get('total', 0),
+                "delivery_fee": cart.get('delivery_fee', 0),
+                "estimated_delivery": result.get('estimated_delivery', '15-20 minutes'),
+                "payment_method": "COD",
+                "tracking_url": result.get('tracking_url'),
+                "note": "⚠️ REAL ORDER PLACED - Cannot be cancelled!",
+            }
+            
+            return AgentResponse(
+                agent=AGENT_NAME,
+                result=order_result,
+                action_type=ActionType.ORDER,
+                suggested_action=f"✅ Order placed: {order_result['order_id']}. Track at {result.get('tracking_url')}",
+                confidence=1.0,
+            )
+            
+        except Exception as e:
+            return AgentResponse(
+                agent=AGENT_NAME,
+                result=f"Error placing order via Swiggy MCP: {str(e)}",
+                action_type=ActionType.INFORM,
+                error="order_failed",
+            )
+    
+    async def _place_order_mock(self, cart: Dict) -> AgentResponse:
+        """Mock order placement (original implementation)"""
         order_id = f"SWG-MOCK-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
         
         order_result = {

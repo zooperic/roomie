@@ -102,6 +102,29 @@ class RemyAgent(BaseAgent):
                 error="unknown_action",
             )
 
+    async def list_all_items(self) -> list[dict]:
+        """Return all pantry items as structured data for API"""
+        db = SessionLocal()
+        try:
+            items = db.query(InventoryItemDB).filter(
+                InventoryItemDB.agent_owner == AGENT_NAME
+            ).all()
+            
+            return [
+                {
+                    "id": item.id,
+                    "name": item.name,
+                    "quantity": item.quantity,
+                    "unit": item.unit,
+                    "category": item.category,
+                    "low_stock_threshold": item.low_stock_threshold,
+                    "last_updated": item.last_updated.isoformat() if item.last_updated else None,
+                }
+                for item in items
+            ]
+        finally:
+            db.close()
+
     async def get_status(self) -> dict:
         db = SessionLocal()
         try:

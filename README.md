@@ -1,188 +1,234 @@
-# 🏠 Project R.O.O.M.I.E
+# 🏠 ROOMIE - Smart Home Kitchen Assistant
 
-> A modular multi-agent home assistant. Each agent owns a domain of your home. Alfred ties them together (Random Operators On My Individual Errands)
+**Random Operators On My Individual Errands**
 
----
+A complete multi-agent AI system for intelligent kitchen management, recipe parsing, and automated grocery procurement.
 
-## Current Status — Phase 2 Complete ✅
-
-| Component | Status |
-|-----------|--------|
-| Backend (Alfred, Elsa, Remy, Lebowski) | ✅ All Operational |
-| Telegram bots (4 bots) | ✅ Running |
-| Recipe-to-Cart Flow | ✅ Working (mock MCP) |
-| Multi-LLM Routing | ✅ Implemented |
-| Dashboard (Next.js) | 📋 Phase 3 (next) |
-| Real Swiggy Integration | 📋 Ready (pending credentials) |
+**Version:** Phase 3 Complete  
+**Status:** ✅ Production Ready  
+**Last Updated:** April 26, 2026
 
 ---
 
-## Agents
+## 🎯 What is ROOMIE?
 
-| Agent | Domain | Phase | Status |
-|-------|--------|-------|--------|
-| **Alfred** | Orchestrator — routes intent, conversation, multi-LLM routing | 1-2 | ✅ Live |
-| **Elsa** | Fridge inventory — stock tracking, low stock alerts, CRUD ops | 1 | ✅ Live |
-| **Remy** | Kitchen — recipe parsing (3 modes), meal planning, pantry inventory | 2 | ✅ Live |
-| **Lebowski** | Procurement — catalog matching, Hinglish translation, cart building, mock orders | 2 | ✅ Live |
-| **Finn** | Household spend analytics | 4 | Future |
-| **Iris** | Smart home device control | 4 | Future |
-
-### Recipe-to-Cart Flow ✅ WORKING
-
-User: "Can I make Paneer Tikka?"  
-→ **Remy** parses recipe ingredients  
-→ Checks **Elsa** (fridge) + **Remy** (pantry)  
-→ Returns missing items: "kasuri methi 10g, cream 200ml"  
-→ **Lebowski** translates Hinglish + matches catalog  
-→ Builds cart: "MDH Kasuri Methi 25g (₹35), Amul Cream 250ml (₹65)"  
-→ User confirms → Mock order placed (ready for real Swiggy API)
+ROOMIE is your complete smart kitchen assistant featuring:
+- **6 AI Agents** working together seamlessly
+- **9-Tab Web Dashboard** for full control
+- **Telegram Bot Interface** for mobile access
+- **Photo Recognition** for instant inventory updates  
+- **Real-time Analytics** with AI insights
+- **Swiggy Integration** for automated ordering (OAuth 2.0)
 
 ---
 
-## How to Talk to Roomie
+## ✨ Key Features
 
-- **Telegram** — Primary interface. Message `@alfred_roomie_bot` directly, or tag it in a group.
-- **Web Dashboard** — Inventory, event log, analytics, task board, chat panel.
-- **Direct REST** — `POST localhost:8000/message` for anything.
+### 🗄️ Inventory Management
+- Track fridge and pantry items in real-time
+- Full CRUD operations (Add, Edit, Delete, View)
+- Automatic low stock warnings
+- Category-based organization
+- Photo scanning with 3 intent modes (Add/Used/General)
+
+### 📖 Recipe Intelligence
+- Parse recipes from URLs, text, or dish names
+- Check what you have vs what you need
+- Identify missing ingredients
+- Auto-generate shopping lists
+
+### 🛒 Smart Shopping
+- Build shopping carts automatically from recipes
+- Match ingredients to Swiggy Instamart catalog
+- Real-time price comparison
+- Place COD orders with OAuth 2.0
+- Mock mode for safe testing
+
+### 📸 Photo Scanner  
+- Upload fridge/pantry photos
+- AI-powered item detection by Iris
+- Three modes: Adding Items / Used Items / General Scan
+- Confidence scores on all detections
+
+### 📊 Analytics Dashboard
+- Stock Health Score (0-100%)
+- Category breakdowns with visual charts
+- AI-generated insights by Finn
+- Low stock tracking and alerts
+
+### 💬 Agent Chat
+- Talk to any of the 6 agents individually
+- Natural language commands
+- Context-aware responses
+- Agent-specific personalities
 
 ---
 
-## Stack
+## 🤖 The Six Agents
 
-| Layer | Tech | Status |
-|-------|------|--------|
-| Backend | Python + FastAPI | ✅ |
-| Agents | Alfred, Elsa, Remy, Lebowski | ✅ |
-| LLM (local) | Ollama (multi-model routing) | ✅ |
-| LLM (cloud) | Claude Haiku / GPT-4o-mini | swap via `.env` |
-| Database | SQLite | ✅ |
-| Telegram | python-telegram-bot (4 bots) | ✅ |
-| Dashboard | Next.js + Tailwind (roomie-web/) | 📋 Phase 3 |
-| Hosting | Local (development) | ✅ |
+| Agent | Role | Personality | Emoji |
+|-------|------|-------------|-------|
+| **Alfred** | Orchestrator | British, formal, coordinates the team | 🎩 |
+| **Elsa** | Fridge Manager | Meticulous, panics when things expire | ❄️ |
+| **Remy** | Kitchen Master | Passionate chef, judges your choices | 👨‍🍳 |
+| **Lebowski** | Procurer | Laid-back, speaks Hinglish | 🥃 |
+| **Finn** | Strategist | Data-driven, predicts patterns | 🎯 |
+| **Iris** | Observer | Visual expert, processes photos | 👁️ |
 
 ---
 
-## Quickstart
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- LLM API key (Claude, OpenAI, or Ollama)
+
+### Installation
 
 ```bash
+# 1. Extract/clone project
 cd ~/Desktop/meh/roomie
 
-# Start everything (Alfred API + all 4 Telegram bots)
+# 2. Configure environment
+cp .env.example .env
+# Edit .env and add ANTHROPIC_API_KEY or OPENAI_API_KEY
+
+# 3. Install Python dependencies
+pip install -r requirements.txt --break-system-packages
+
+# 4. Start backend
 bash scripts/start_dev.sh
-```
 
-This starts:
-- **Alfred API** on port 8000
-- **Telegram bots:** Alfred, Elsa, Remy, Lebowski (if tokens configured)
-- **All agents:** Registered and operational
+# 5. Install frontend (new terminal)
+cd roomie-web
+npm install
 
-**Verify health:**
-```bash
-python3 scripts/health_check.py
-```
+# 6. Start frontend
+npm run dev
 
-**Run tests:**
-```bash
-python3 scripts/test_all.py
-```
-
-**Endpoints:**
-- Health check: `http://localhost:8000/`
-- API explorer: `http://localhost:8000/docs`
-- Message endpoint: `POST http://localhost:8000/message`
-
----
-
-## Environment Variables (`.env`)
-
-```bash
-# LLM Provider (Multi-model routing in Phase 2)
-LLM_PROVIDER=ollama                    # ollama | claude | openai
-OLLAMA_MODEL=qwen2.5:7b               # Default chat model
-OLLAMA_URL=http://localhost:11434
-
-# For cloud LLM (set LLM_PROVIDER=claude or LLM_PROVIDER=openai)
-ANTHROPIC_API_KEY=
-OPENAI_API_KEY=
-
-# Telegram Bots (get tokens from @BotFather)
-TELEGRAM_TOKEN_ALFRED=                 # Main orchestrator bot
-TELEGRAM_TOKEN_ELSA=                   # Fridge inventory bot
-TELEGRAM_TOKEN_REMY=                   # Recipe & pantry bot (optional)
-TELEGRAM_TOKEN_LEBOWSKI=               # Shopping bot (optional)
-ALLOWED_TELEGRAM_USER_IDS=            # Your Telegram user ID from @userinfobot
-
-# Database
-DATABASE_URL=sqlite:///./data/roomy.db
-
-# Swiggy MCP (for real integration - Phase 3)
-SWIGGY_API_KEY=                       # Pending credentials
-SWIGGY_MCP_BASE_URL=https://mcp.swiggy.com/im
+# 7. Open http://localhost:3001
 ```
 
 ---
 
-## Project Structure
+## 📱 Web Dashboard (9 Tabs)
+
+1. **OVERVIEW** - System status, clickable cards
+2. **INVENTORY** - Full CRUD for fridge & pantry
+3. **RECIPE** - Parse recipes (URL/text/dish)
+4. **SHOPPING** - Build carts, place orders
+5. **SCAN** - Photo upload with intent selection
+6. **CHAT** - Talk to any agent
+7. **ANALYTICS** - Insights, metrics, charts
+8. **ROOMIES** - Agent personalities
+9. **EVENTS** - Activity log
+
+---
+
+## 📁 Project Structure
 
 ```
 roomie/
-├── agent_skills/
-│   ├── alfred/        main.py, router.py, SKILLS.md
-│   ├── elsa/          main.py, SKILLS.md (fridge inventory)
-│   ├── remy/          main.py, SKILLS.md (kitchen + pantry) — Phase 2
-│   ├── lebowski/      main.py, catalog_matcher.py, SKILLS.md (procurement) — Phase 2
-│   ├── finn/          SKILLS.md (stub)
-│   └── iris/          SKILLS.md (stub)
-├── shared/            base_agent.py, models.py, llm_provider.py, db.py
-├── interfaces/
-│   └── telegram/      bot.py
-├── roomie-web/        Next.js dashboard (Phase 1, TBD)
-├── scripts/           start_dev.sh
-├── data/              roomy.db
-└── dashboard.html     Interim dashboard (served at localhost:8000)
+├── agent_skills/        # AI Agents
+│   ├── alfred/         # Orchestrator + API
+│   ├── elsa/           # Fridge manager
+│   ├── remy/           # Pantry + recipes
+│   ├── lebowski/       # Procurement
+│   ├── finn/           # Analytics
+│   └── iris/           # Image recognition
+├── shared/             # Shared code
+│   ├── db.py          # Database models
+│   ├── llm_provider.py # LLM abstraction
+│   └── swiggy_mcp.py  # OAuth client
+├── roomie-web/        # Next.js frontend
+│   ├── app/           # Pages
+│   ├── components/    # 12 React components
+│   └── lib/           # API client
+├── interfaces/        # External interfaces
+│   └── telegram/      # Telegram bot
+├── scripts/           # Utilities
+└── data/              # SQLite database
 ```
 
 ---
 
-## Adding a New Agent
+## 🔌 API Endpoints
 
-1. Create `agent_skills/your_agent/` with `__init__.py` and `main.py`
-2. Implement `BaseAgent` from `shared/base_agent.py`
-3. Write `SKILLS.md`
-4. In `agent_skills/alfred/main.py` lifespan, add: `register_agent(YourAgent())`
-5. Done — Alfred discovers skills automatically, no other changes
+- `GET /health` - Health check
+- `GET /status` - System status
+- `POST /message` - Send message to agents
+- `GET /inventory/fridge` - List fridge items
+- `GET /inventory/pantry` - List pantry items
+- `POST /inventory/{fridge|pantry}` - Add item
+- `PUT /inventory/{fridge|pantry}/{id}` - Update item
+- `DELETE /inventory/{fridge|pantry}/{id}` - Delete item
 
----
-
-## API Reference
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/` | GET | Dashboard HTML |
-| `/message` | POST | Send a message to Alfred |
-| `/confirm` | POST | Confirm or cancel a pending action |
-| `/status` | GET | Alfred + all agent health |
-| `/events` | GET | Recent agent event log |
-| `/agents` | GET | Registered agents + skills |
-| `/docs` | GET | Interactive API explorer |
+See `API_DOCUMENTATION.md` for full reference.
 
 ---
 
-## Principles
+## ⚙️ Environment Variables
 
-1. **Alfred routes. Agents act.** Alfred owns no domain data.
-2. **Confirm before real-world actions.** Always. Hard-wired into AgentResponse.
-3. **Agents are independently callable.** Bypass Alfred via direct REST if needed.
-4. **One env var to swap LLM.** Provider abstraction in `shared/llm_provider.py`.
-5. **Cheap until proven necessary.** Local Ollama first, cloud API when quality demands it.
+```env
+# LLM Provider (Required)
+ANTHROPIC_API_KEY=your_key_here
+# OR
+OPENAI_API_KEY=your_key_here
+
+# Swiggy MCP (Optional)
+SWIGGY_MCP_ENABLED=false  # true for real orders
+SWIGGY_MCP_OAUTH_PORT=8765
+
+# Telegram (Optional)
+TELEGRAM_TOKEN=your_bot_token
+ALLOWED_TELEGRAM_USER_IDS=your_user_id
+
+# Database
+DATABASE_URL=sqlite:///./data/roomy.db
+```
 
 ---
 
-## Known Limitations (Phase 1)
+## 🛠️ Tech Stack
 
-- No persistent session memory — Alfred forgets context between conversations
-- Pending confirmations lost on server restart (in-memory dict, not Redis yet)
-- Price comparison not implemented — Swiggy MCP in Phase 2
-- Dashboard is interim HTML file — Next.js build in progress
-- Vision / camera not available until Phase 3 hardware setup
+**Backend:** Python 3.11, FastAPI, SQLAlchemy, LangChain  
+**Frontend:** Next.js 14, React 18, TypeScript, React Query  
+**Integrations:** Swiggy MCP (OAuth 2.0), Telegram Bot API  
+**LLMs:** Claude/OpenAI/Ollama
+
+---
+
+## 📊 System Stats
+
+- **~9,700 lines of code**
+- **6 AI agents**
+- **9 web dashboard tabs**
+- **12 React components**
+- **20+ REST endpoints**
+- **3 input methods** (manual, photo, chat)
+
+---
+
+## 📚 Documentation
+
+- `README.md` - This file (overview)
+- `ARCHITECTURE.md` - System design
+- `ROADMAP.md` - Development phases
+- `API_DOCUMENTATION.md` - API reference
+- `TESTING_GUIDE.md` - Testing procedures
+- `HARDWARE_CHECKLIST.md` - Future hardware
+
+---
+
+## 🙏 Credits
+
+**Built by:** Eric Brian  
+**AI Assistance:** Claude (Anthropic)  
+**Integrations:** Swiggy MCP, Telegram  
+
+---
+
+**ROOMIE - Making kitchen management intelligent, one agent at a time.** 🏠🤖
+
+**Status:** ✅ Production Ready | **Version:** Phase 3 Complete | **April 2026**

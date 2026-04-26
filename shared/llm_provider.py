@@ -10,7 +10,7 @@ PROVIDER = os.getenv("LLM_PROVIDER", "ollama").lower()
 
 # Model routing for different task types (Ollama only)
 MODEL_ROUTING = {
-    "chat": "qwen2.5:7b",           # General conversation
+    "chat": "llama3.1:8b",           # General conversation
     "vision": "qwen2.5vl:7b",        # Photo analysis
     "code": "qwen2.5-coder:7b",      # Code generation
     "reasoning": "deepseek-r1:8b",   # Complex reasoning
@@ -138,7 +138,7 @@ async def _call_ollama(prompt, system, json_mode, max_tokens, model):
         payload["format"] = "json"
     
     print(f"[LLM] Using model: {model}")
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=300.0) as client:
         response = await client.post(f"{ollama_url}/api/generate", json=payload)
         response.raise_for_status()
         return response.json()["response"]
@@ -161,7 +161,7 @@ async def call_llm_vision(prompt: str, image_base64: str, system: Optional[str] 
             payload["system"] = system
         
         print(f"[VISION] Using model: {vision_model}")
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=300.0) as client:
             response = await client.post(f"{ollama_url}/api/generate", json=payload)
             response.raise_for_status()
             result = response.json()["response"]
