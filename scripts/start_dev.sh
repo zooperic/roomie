@@ -9,10 +9,18 @@ echo "🏠 Starting Project Roomy..."
 
 # Load environment variables
 if [ -f .env ]; then
-    set -a
-    source <(grep -v '^#' .env | sed 's/#.*//' | sed '/^$/d')
-    set +a
+    while IFS='=' read -r key value; do
+        # Skip comments and empty lines
+        [[ $key =~ ^#.*$ ]] && continue
+        [[ -z $key ]] && continue
+        export "$key=$value"
+    done < .env
 fi
+
+# # DEBUG: Check if tokens loaded
+# echo "DEBUG: TELEGRAM_TOKEN_ALFRED = ${TELEGRAM_TOKEN_ALFRED}"
+# echo "DEBUG: TELEGRAM_TOKEN_ELSA = ${TELEGRAM_TOKEN_ELSA}"
+
 # Initialize DB if not exists
 python -c "from shared.db import init_db; init_db()"
 

@@ -75,6 +75,11 @@ class ElsaAgent(BaseAgent):
     async def handle(self, intent: Intent) -> AgentResponse:
         action = intent.action
         params = intent.parameters
+        raw_msg = intent.raw_message.lower()
+
+        # Handle "clear all" / "remove everything"
+        if 'clear' in raw_msg or 'remove all' in raw_msg or 'delete all' in raw_msg or 'empty' in raw_msg:
+            return await self._clear_all()
 
         if action == "check_inventory":
             return await self._check_inventory(params.get("item"))
@@ -470,6 +475,24 @@ class ElsaAgent(BaseAgent):
                 suggested_action=f"Order {', '.join(c.name for c in cart)} from InstaMart",
                 suggested_action_payload={"cart": [c.dict() for c in cart], "platform": "instamart"},
                 confidence=0.90,
+            )
+        finally:
+            db.close()
+    
+    async def _clear_all(self) -> AgentResponse:
+        """Clear all items from fridge"""
+        db = SessionLocal()
+        try:
+            count = db.query(InventoryItemDB).filter(
+                InventoryItemDB.storage_location == 'fridge'
+            ).delete()
+            db.commit()
+        
+            return AgentResponse(
+                agent=self.name,
+                result=f"✅ Cleared {count} items from the fridge.",
+                action_type="update",
+                confidence=1.0
             )
         finally:
             db.close()

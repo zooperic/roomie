@@ -25,7 +25,6 @@ export default function PhotoScanner() {
 
   const scanMutation = useMutation({
     mutationFn: async ({ image, scanIntent }: { image: string; scanIntent: ScanIntent }) => {
-      // Send to Iris agent with intent
       const message = scanIntent === 'add'
         ? 'scan fridge and add items'
         : scanIntent === 'used'
@@ -42,14 +41,12 @@ export default function PhotoScanner() {
       );
     },
     onSuccess: (data) => {
-      // Parse Iris response - backend returns 'result' not 'response'
       try {
         const response = typeof data.result === 'string'
           ? JSON.parse(data.result)
           : data.result;
         setResult(response);
       } catch {
-        // Fallback if response isn't JSON
         setResult({
           items: [],
           intent,
@@ -78,7 +75,6 @@ export default function PhotoScanner() {
     setSelectedFile(file);
     setResult(null);
 
-    // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setPreview(reader.result as string);
@@ -99,6 +95,34 @@ export default function PhotoScanner() {
       const reader = new FileReader();
       reader.onloadend = () => setPreview(reader.result as string);
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddToInventory = async () => {
+    if (!result?.items || result.items.length === 0) return;
+
+    try {
+      for (const item of result.items) {
+        await fetch('http://localhost:8000/inventory/fridge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: item.name,
+            quantity: item.quantity || 1,
+            unit: item.unit || 'units',
+            storage_location: 'fridge',
+            category: 'scanned',
+          }),
+        });
+      }
+
+      alert(`✅ Added ${result.items.length} items to inventory!`);
+      setResult(null);
+      setPreview(null);
+      setSelectedFile(null);
+    } catch (err) {
+      alert('❌ Failed to add items. Please try again.');
+      console.error('Add to inventory error:', err);
     }
   };
 
@@ -350,22 +374,26 @@ export default function PhotoScanner() {
                       ))}
                     </div>
 
+                    {/* ADD TO INVENTORY BUTTON */}
                     {intent !== 'general' && (
-                      <div style={{
-                        marginTop: '16px',
-                        padding: '12px',
-                        background: intent === 'add' ? '#22c55e22' : '#f59e0b22',
-                        border: `1px solid ${intent === 'add' ? '#22c55e44' : '#f59e0b44'}`,
-                        borderRadius: '4px',
-                      }}>
-                        <div style={{
-                          fontSize: '10px',
-                          color: intent === 'add' ? '#22c55e' : '#f59e0b',
-                          letterSpacing: '0.05em'
-                        }}>
-                          ✓ Inventory {intent === 'add' ? 'updated' : 'adjusted'}
-                        </div>
-                      </div>
+                      <button
+                        onClick={handleAddToInventory}
+                        style={{
+                          width: '100%',
+                          marginTop: '16px',
+                          padding: '12px',
+                          background: '#22c55e',
+                          color: '#000',
+                          border: 'none',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: '500',
+                          letterSpacing: '0.08em',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ADD TO INVENTORY
+                      </button>
                     )}
                   </div>
                 ) : (

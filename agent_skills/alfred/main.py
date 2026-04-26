@@ -1,3 +1,5 @@
+import json
+from shared.models import Intent
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +19,8 @@ async def lifespan(app: FastAPI):
     
     # Check if real Swiggy MCP should be used
     use_swiggy_mcp = os.getenv("SWIGGY_MCP_ENABLED", "false").lower() == "true"
+    print(f"[DEBUG] SWIGGY_MCP_ENABLED env var: {os.getenv('SWIGGY_MCP_ENABLED')}")
+    print(f"[DEBUG] use_swiggy_mcp: {use_swiggy_mcp}")
     
     # Register agents
     from agent_skills.alfred.agent import AlfredAgent
@@ -81,46 +85,70 @@ async def dashboard():
 async def receive_message(req: MessageRequest):
     from agent_skills.alfred.router import AGENT_REGISTRY
     
-    # If force_agent is specified, use Alfred's router for action classification but force the target
     if req.force_agent:
-        # Special case: If forcing Alfred, let him route naturally
         if req.force_agent == "alfred":
-            # Normal routing through Alfred - he'll delegate
             intent = await route_intent(req.message, user_id=req.user_id)
-            response = await dispatch(intent)
         else:
-            # Force to specific agent (Elsa, Remy, etc.)
             agent = AGENT_REGISTRY.get(req.force_agent)
             if not agent:
                 raise HTTPException(status_code=404, detail=f"Agent '{req.force_agent}' not found")
             
             intent = await route_intent(req.message, user_id=req.user_id)
             intent.target_agent = req.force_agent
-
+            
             # Pass image_data to parameters
             if req.image_data:
                 intent.parameters['image_data'] = req.image_data
-
-            response = await dispatch(intent)
         
         response = await dispatch(intent)
+        
+        # AUTO-ADD: If Iris scanned with 'add' operation, send items to Elsa
+        if req.force_agent == "iris" and intent.parameters.get('operation') == 'add':
+            try:
+                result_data = json.loads(response.result)
+                items = result_data.get('items', [])
+                
+                if items:
+                    elsa = AGENT_REGISTRY.get("elsa")
+                    
+                    # Add each item to fridge
+                    added_count = 0
+                    for item in items:
+                        elsa_intent = Intent(
+                            raw_message=f"Add {item['quantity']} {item['unit']} of {item['name']}",
+                            target_agent="elsa",
+                            action="add",
+                            parameters={
+                                "item": item['name'],
+                                "quantity": item['quantity'],
+                                "unit": item['unit'],
+                                "source": "vision_scan"
+                            },
+                            user_id=req.user_id
+                        )
+                        
+                        await elsa.handle(elsa_intent)
+                        added_count += 1
+                    
+                    # Update response message
+                    result_data['message'] = f"Detected {len(items)} items and added {added_count} to inventory"
+                    response.result = json.dumps(result_data)
+                    
+            except Exception as e:
+                print(f"[Alfred] Error auto-adding items: {e}")
+                # If parsing fails, just return Iris result as-is
     else:
-        # Normal routing through Alfred
         intent = await route_intent(req.message, user_id=req.user_id)
         response = await dispatch(intent)
     
-    if response.needs_human():
-        session_id = req.session_id or f"{req.user_id}_{intent.action}"
-        pending_confirmations[session_id] = response
-        return {
-            "status": "awaiting_confirmation",
-            "session_id": session_id,
-            "message": f"Alfred needs your approval:\n{response.suggested_action}",
-            "agent": response.agent,
-            "confidence": response.confidence,
-        }
-    return {"status": "ok", "result": response.result, "agent": response.agent, "action_type": response.action_type}
-
+    return {
+        "agent": response.agent,
+        "result": response.result,
+        "message": response.result,
+        "action_type": response.action_type,
+        "confidence": response.confidence,
+        "error": response.error
+    }
 
 @app.post("/confirm")
 async def confirm_action(req: ConfirmActionRequest):
@@ -173,107 +201,56 @@ async def confirm_action(req: ConfirmActionRequest):
 
 @app.post("/scan_fridge")
 async def scan_fridge(req: ScanFridgeRequest):
-    """Process fridge photo via vision LLM and return inventory diff"""
+    """Scan fridge photo and auto-add detected items to inventory"""
     from agent_skills.alfred.router import AGENT_REGISTRY
-    from shared.llm_provider import call_llm_vision
-    from shared.db import SessionLocal, InventoryItemDB as InventoryDB
-    import json
     
-    # Call vision LLM to detect items
-    vision_prompt = """Analyze this fridge photo and list ALL visible food items with their estimated quantities.
-
-Return a JSON array of items in this exact format:
-[
-  {"name": "milk", "quantity": 2, "unit": "bottles"},
-  {"name": "eggs", "quantity": 6, "unit": "units"},
-  {"name": "tomatoes", "quantity": 4, "unit": "units"}
-]
-
-Rules:
-- Be specific but use common names (not brand names)
-- Estimate quantities conservatively
-- Use standard units: bottles, units, kg, g, L, ml
-- Only include items you can clearly see
-- If unsure about quantity, round down"""
-
     try:
-        vision_result = await call_llm_vision(vision_prompt, req.image_base64)
+        # Get Iris to analyze the photo
+        iris = AGENT_REGISTRY.get("iris")
+        if not iris:
+            raise HTTPException(status_code=500, detail="Iris agent not available")
         
-        # Strip markdown code blocks if present
-        vision_result = vision_result.strip()
-        if vision_result.startswith("```json"):
-            vision_result = vision_result[7:]  # Remove ```json
-        if vision_result.startswith("```"):
-            vision_result = vision_result[3:]  # Remove ```
-        if vision_result.endswith("```"):
-            vision_result = vision_result[:-3]  # Remove trailing ```
-        vision_result = vision_result.strip()
+        intent = Intent(
+            raw_message="scan fridge and add items",
+            target_agent="iris",
+            action="scan_image",
+            parameters={"image_data": req.image_base64, "operation": "add"},
+            user_id=req.user_id
+        )
         
-        # Parse JSON from LLM response
-        detected_items = json.loads(vision_result)
+        response = await iris.handle(intent)
+        result_data = json.loads(response.result)
+        items = result_data.get('items', [])
+        
+        # Auto-add items to inventory via Elsa
+        if items:
+            elsa = AGENT_REGISTRY.get("elsa")
+            added_count = 0
+            
+            for item in items:
+                elsa_intent = Intent(
+                    raw_message=f"Add {item['quantity']} {item['unit']} of {item['name']}",
+                    target_agent="elsa",
+                    action="add",
+                    parameters={
+                        "item": item['name'],
+                        "quantity": item['quantity'],
+                        "unit": item['unit'],
+                        "source": "photo_scan"
+                    },
+                    user_id=req.user_id
+                )
+                
+                await elsa.handle(elsa_intent)
+                added_count += 1
+            
+            result_data['message'] = f"Scanned and added {added_count} items to inventory"
+        
+        return result_data
+        
     except Exception as e:
-        return {"status": "error", "message": f"Vision processing failed: {e}"}
-    
-    # Get current inventory from Elsa
-    db = SessionLocal()
-    try:
-        current_inventory = db.query(InventoryItemDB).filter_by(agent_owner='elsa').all()
-        current_dict = {item.name: {"quantity": item.quantity, "unit": item.unit} for item in current_inventory}
-    finally:
-        db.close()
-    
-    # Calculate diff
-    diff = calculate_inventory_diff(current_dict, detected_items)
-    
-    # Create session for confirmation
-    session_id = f"scan_{req.user_id}_{hash(req.image_base64[:50])}"
-    
-    # Store diff in pending confirmations
-    from shared.models import AgentResponse, ActionType
-    response = AgentResponse(
-        agent="elsa",
-        action_type=ActionType.UPDATE,
-        result=diff,
-        suggested_action=f"Update inventory based on photo scan",
-        requires_confirmation=True,
-        confidence=0.7  # Vision is not 100% accurate
-    )
-    pending_confirmations[session_id] = response
-    
-    return {
-        "status": "awaiting_confirmation",
-        "session_id": session_id,
-        "diff": diff,
-        "message": "Review detected changes before updating inventory"
-    }
-
-
-def calculate_inventory_diff(current: dict, detected: list) -> dict:
-    """Calculate diff between current inventory and detected items"""
-    detected_dict = {item["name"]: item for item in detected}
-    
-    added = []
-    removed = []
-    updated = []
-    
-    # Find added and updated items
-    for name, item in detected_dict.items():
-        if name not in current:
-            added.append(item)
-        elif current[name]["quantity"] != item["quantity"]:
-            updated.append({
-                "name": name,
-                "old_quantity": current[name]["quantity"],
-                "quantity": item["quantity"],
-                "unit": item.get("unit", current[name].get("unit", ""))
-            })
-    
-    # Find removed items
-    for name in current:
-        if name not in detected_dict:
-            removed.append({"name": name})
-    
-    return {"added": added, "removed": removed, "updated": updated}
+        print(f"[Alfred] Scan fridge error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/status")
@@ -339,36 +316,112 @@ async def get_pantry_inventory():
 
 
 @app.post("/inventory/fridge")
-async def add_fridge_item(item: InventoryItemRequest):
-    """Add item to fridge"""
-    message = f"add {item.quantity} {item.unit} {item.name}"
-    if item.category:
-        message += f" category {item.category}"
+async def add_fridge_item(request: dict):
+    """Add item to fridge inventory via Elsa"""
+    from agent_skills.alfred.router import AGENT_REGISTRY
     
-    request = MessageRequest(
-        message=message,
-        user_id="web-api",
-        force_agent="elsa"
-    )
-    result = await handle_message(request)
-    return {"success": True, "message": result["response"]}
+    try:
+        elsa = AGENT_REGISTRY.get("elsa")
+        if not elsa:
+            raise HTTPException(status_code=500, detail="Elsa not available")
+        
+        intent = Intent(
+            raw_message=f"Add {request.get('quantity', 1)} {request.get('unit', 'units')} of {request['name']}",
+            target_agent="elsa",
+            action="update_inventory",
+            parameters={
+                "item": request['name'],
+                "quantity": request.get('quantity', 1),
+                "unit": request.get('unit', 'units'),
+                "storage_location": "fridge",
+                "category": request.get('category', 'general'),
+                "operation": "add" 
+            },
+            user_id="web-user"
+        )
+        
+        response = await elsa.handle(intent)
+        return {"status": "success", "message": response.result}
+        
+    except Exception as e:
+        print(f"[Alfred] Add fridge item error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/inventory/pantry")
-async def add_pantry_item(item: InventoryItemRequest):
-    """Add item to pantry"""
-    message = f"add {item.quantity} {item.unit} {item.name}"
-    if item.category:
-        message += f" category {item.category}"
+async def add_pantry_item(request: dict):
+    """Add item to pantry inventory via Remy"""
+    from agent_skills.alfred.router import AGENT_REGISTRY
     
-    request = MessageRequest(
-        message=message,
-        user_id="web-api",
-        force_agent="remy"
-    )
-    result = await handle_message(request)
-    return {"success": True, "message": result["response"]}
+    try:
+        remy = AGENT_REGISTRY.get("remy")
+        if not remy:
+            raise HTTPException(status_code=500, detail="Remy not available")
+        
+        intent = Intent(
+            raw_message=f"Add {request.get('quantity', 1)} {request.get('unit', 'units')} of {request['name']}",
+            target_agent="remy",
+            action="update_inventory",
+            parameters={
+                "item": request['name'],
+                "quantity": request.get('quantity', 1),
+                "unit": request.get('unit', 'units'),
+                "storage_location": "pantry",
+                "category": request.get('category', 'general'),
+                "operation": "add"
+            },
+            user_id="web-user"
+        )
+        
+        response = await remy.handle(intent)
+        return {"status": "success", "message": response.result}
+        
+    except Exception as e:
+        print(f"[Alfred] Add pantry item error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/build_cart")
+async def build_cart(request: dict):
+    """Build shopping cart by matching items to catalog via Lebowski"""
+    from agent_skills.alfred.router import AGENT_REGISTRY
+    
+    try:
+        items = request.get('items', [])
+        print(f"[BUILD_CART DEBUG] Received items: {items}") 
+        if not items:
+            raise HTTPException(status_code=400, detail="No items provided")
+        
+        lebowski = AGENT_REGISTRY.get("lebowski")
+        if not lebowski:
+            raise HTTPException(status_code=500, detail="Lebowski not available")
+
+        print(f"[BUILD_CART DEBUG] Calling Lebowski with items: {items}")
+        
+        intent = Intent(
+            raw_message=f"Build cart with items: {items}",
+            target_agent="lebowski",
+            action="build_cart",
+            parameters={"items": items},
+            user_id="web-user"
+        )
+        
+        response = await lebowski.handle(intent)
+        print(f"[BUILD_CART DEBUG] Lebowski response: {response.result}") 
+        
+        # Parse response
+        try:
+            result = json.loads(response.result) if isinstance(response.result, str) else response.result
+        except:
+            result = {"matched_items": [], "total_cost": 0, "message": response.result}
+        
+        return {
+            "response": result,
+            "result": result
+        }
+        
+    except Exception as e:
+        print(f"[Alfred] Build cart error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.put("/inventory/fridge/{item_id}")
 async def update_fridge_item(item_id: int, item: InventoryItemRequest):

@@ -82,6 +82,10 @@ class RemyAgent(BaseAgent):
     async def handle(self, intent: Intent) -> AgentResponse:
         action = intent.action
         params = intent.parameters
+        raw_msg = intent.raw_message.lower()
+
+        if 'clear' in raw_msg or 'remove all' in raw_msg or 'delete all' in raw_msg or 'empty' in raw_msg:
+            return await self._clear_all()
 
         if action == "check_inventory":
             return await self._check_inventory(params.get("item"))
@@ -342,8 +346,8 @@ Rules:
                 prompt=prompt,
                 system=system,
                 json_mode=True,
-                max_tokens=1024,
-                task_type="reasoning",  # Use reasoning model for complex extraction
+                max_tokens=2048,
+                task_type="chat",  # Use reasoning model for complex extraction
             )
 
             parsed = parse_json_response(raw)
@@ -543,6 +547,24 @@ Suggest 2-3 meal ideas."""
                 result=response.strip(),
                 action_type=ActionType.INFORM,
                 confidence=0.85,
+            )
+        finally:
+            db.close()
+    
+    async def _clear_all(self) -> AgentResponse:
+        """Clear all items from pantry"""
+        db = SessionLocal()
+        try:
+            count = db.query(InventoryItemDB).filter(
+                InventoryItemDB.storage_location == 'pantry'
+            ).delete()
+            db.commit()
+        
+            return AgentResponse(
+                agent=self.name,
+                result=f"✅ Cleared {count} items from the pantry.",
+                action_type="update",
+                confidence=1.0
             )
         finally:
             db.close()

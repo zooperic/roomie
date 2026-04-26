@@ -46,10 +46,24 @@ class LebowskiAgent(BaseAgent):
             print(f"[Lebowski] Real Swiggy MCP mode enabled")
             from shared.swiggy_mcp import SwiggyMCPClient
             self.swiggy_client = SwiggyMCPClient()
+            
+            # Check if we have OAuth tokens
+            if not os.path.exists('.swiggy_tokens.json'):
+                print("[Lebowski] ⚠️  No Swiggy auth tokens found!")
+                print("[Lebowski] 🔐 Please visit http://localhost:8765/auth to authenticate")
+                
+                # Start OAuth server in background
+                import threading
+                from agent_skills.lebowski.oauth_server import start_oauth_server
+                oauth_thread = threading.Thread(target=start_oauth_server, daemon=True)
+                oauth_thread.start()
+            else:
+                print("[Lebowski] ✅ Found existing Swiggy auth tokens")
         else:
             print(f"[Lebowski] Mock mode - Loaded {len(self.catalog)} items from catalog")
         
         print(f"[Lebowski] Loaded {len(self.hinglish_dict)} Hinglish translations")
+        
 
     def get_skills(self) -> list[SkillDefinition]:
         return [
@@ -96,7 +110,22 @@ class LebowskiAgent(BaseAgent):
         
         elif action == "build_cart":
             items = params.get("items", [])
-            return await self._build_cart(items)
+    
+            # Step 1: Extract item names
+            item_names = [item.get('name') or item for item in items if item]
+    
+            # Step 2: Match to catalog
+            match_response = await self._match_catalog(item_names)
+    
+            # Step 3: Parse matched items from match response
+            try:
+                matched_data = json.loads(match_response.result) if isinstance(match_response.result, str) else match_response.result
+                matched_items = matched_data.get('matched_items', [])
+            except:
+                matched_items = []
+    
+            # Step 4: Build cart from matched items
+            return await self._build_cart(matched_items)
         
         elif action == "place_order":
             cart = params.get("cart", [])

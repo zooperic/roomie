@@ -116,7 +116,11 @@
 
 ---
 
-## Phase 4: Hardware Integration 📋 PLANNED
+## Phase 4: Fixes & Hardware Integration 📋 PLANNED
+
+Beautification upgrades:
+- 🔜 Expiry Date management and alerts
+- Advanced Analytics
 
 **Timeline:** TBD  
 **Status:** 🔜 Next Phase

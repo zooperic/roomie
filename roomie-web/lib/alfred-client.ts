@@ -38,7 +38,7 @@ export interface Event {
 class AlfredClient {
   private api = axios.create({
     baseURL: API_BASE,
-    timeout: 30000,
+    timeout: 60000,
   });
 
   async getStatus(): Promise<AlfredStatus> {
@@ -110,11 +110,8 @@ class AlfredClient {
   }
 
   async buildCart(items: Array<{ name: string; quantity?: number; unit?: string }>): Promise<MessageResponse> {
-    const itemList = items.map(i =>
-      i.quantity ? `${i.name} ${i.quantity}${i.unit || ''}` : i.name
-    ).join(', ');
-
-    return this.sendMessage(`find these on swiggy: ${itemList}`, 'web-user', 'lebowski');
+    const { data } = await this.api.post('/build_cart', { items });
+    return data;
   }
 
   async parseRecipe(input: string, type: 'url' | 'text' | 'dish'): Promise<MessageResponse> {
@@ -133,10 +130,6 @@ class AlfredClient {
     return this.sendMessage(message, 'web-user', 'remy');
   }
 
-  async buildCart(items: string[]): Promise<MessageResponse> {
-    const message = `find on swiggy: ${items.join(', ')}`;
-    return this.sendMessage(message, 'web-user', 'lebowski');
-  }
 
   async getEvents(limit: number = 10): Promise<Event[]> {
     // This would need a proper events endpoint on Alfred
