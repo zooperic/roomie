@@ -4,14 +4,16 @@
 
 ---
 
-## Current Status — Phase 1 (In Progress)
+## Current Status — Phase 2 Complete ✅
 
 | Component | Status |
 |-----------|--------|
-| Backend (Alfred + Elsa) | ✅ Running |
-| Telegram bot (`alfred_roomie_bot`) | 🔄 Token setup |
-| Dashboard (Next.js) | 📋 Scoped |
-| Swiggy MCP integration | 🔜 Phase 2 |
+| Backend (Alfred, Elsa, Remy, Lebowski) | ✅ All Operational |
+| Telegram bots (4 bots) | ✅ Running |
+| Recipe-to-Cart Flow | ✅ Working (mock MCP) |
+| Multi-LLM Routing | ✅ Implemented |
+| Dashboard (Next.js) | 📋 Phase 3 (next) |
+| Real Swiggy Integration | 📋 Ready (pending credentials) |
 
 ---
 
@@ -19,17 +21,22 @@
 
 | Agent | Domain | Phase | Status |
 |-------|--------|-------|--------|
-| **Alfred** | Orchestrator — routes all intent, confirmation gate | 1 | ✅ Live |
-| **Elsa** | Fridge inventory — stock tracking, low stock alerts | 1 | ✅ Live |
-| **Remy** | Kitchen operations — recipe parsing, meal planning, pantry inventory | 2 | 📋 Scoped |
-| **Lebowski** | Procurement — catalog matching, cart building, order placement | 2 | 📋 Scoped |
-| **Finn** | Household spend analytics | 4 | Stub |
-| **Iris** | Smart home device control | 4 | Stub |
+| **Alfred** | Orchestrator — routes intent, conversation, multi-LLM routing | 1-2 | ✅ Live |
+| **Elsa** | Fridge inventory — stock tracking, low stock alerts, CRUD ops | 1 | ✅ Live |
+| **Remy** | Kitchen — recipe parsing (3 modes), meal planning, pantry inventory | 2 | ✅ Live |
+| **Lebowski** | Procurement — catalog matching, Hinglish translation, cart building, mock orders | 2 | ✅ Live |
+| **Finn** | Household spend analytics | 4 | Future |
+| **Iris** | Smart home device control | 4 | Future |
 
-### Recipe-to-Cart Flow (Target)
-User pastes recipe → Remy parses ingredients → asks Elsa (fridge) + self (pantry) → compiles missing items → hands to Lebowski → Lebowski matches to Swiggy catalog → builds cart → Alfred confirms with user.
+### Recipe-to-Cart Flow ✅ WORKING
 
-**Phase 1 shortcut:** Elsa handles recipe parsing directly as POC.
+User: "Can I make Paneer Tikka?"  
+→ **Remy** parses recipe ingredients  
+→ Checks **Elsa** (fridge) + **Remy** (pantry)  
+→ Returns missing items: "kasuri methi 10g, cream 200ml"  
+→ **Lebowski** translates Hinglish + matches catalog  
+→ Builds cart: "MDH Kasuri Methi 25g (₹35), Amul Cream 250ml (₹65)"  
+→ User confirms → Mock order placed (ready for real Swiggy API)
 
 ---
 
@@ -46,12 +53,13 @@ User pastes recipe → Remy parses ingredients → asks Elsa (fridge) + self (pa
 | Layer | Tech | Status |
 |-------|------|--------|
 | Backend | Python + FastAPI | ✅ |
-| LLM (local) | Ollama + qwen2.5:7b | ✅ |
+| Agents | Alfred, Elsa, Remy, Lebowski | ✅ |
+| LLM (local) | Ollama (multi-model routing) | ✅ |
 | LLM (cloud) | Claude Haiku / GPT-4o-mini | swap via `.env` |
-| Database | SQLite → PostgreSQL | ✅ SQLite |
-| Telegram | python-telegram-bot | 🔄 |
-| Dashboard | Next.js + Tailwind (roomie-web/) | 📋 |
-| Hosting | Local + ngrok → Vercel (dashboard) + Fly.io (API) | local now |
+| Database | SQLite | ✅ |
+| Telegram | python-telegram-bot (4 bots) | ✅ |
+| Dashboard | Next.js + Tailwind (roomie-web/) | 📋 Phase 3 |
+| Hosting | Local (development) | ✅ |
 
 ---
 
@@ -59,41 +67,58 @@ User pastes recipe → Remy parses ingredients → asks Elsa (fridge) + self (pa
 
 ```bash
 cd ~/Desktop/meh/roomie
-source .venv/bin/activate          # or skip if using system Python
 
-# Set env vars (only needed once per terminal session)
-export PYTHONPATH=/Users/ericbrian/Desktop/meh/roomie
-
-# Start Alfred
-uvicorn agent_skills.alfred.main:app --reload --port 8000
-
-# Start Telegram bot (new terminal tab)
-export PYTHONPATH=/Users/ericbrian/Desktop/meh/roomie
-python -m interfaces.telegram.bot
+# Start everything (Alfred API + all 4 Telegram bots)
+bash scripts/start_dev.sh
 ```
 
-Dashboard: open `http://localhost:8000` in browser.
-API explorer: `http://localhost:8000/docs`
+This starts:
+- **Alfred API** on port 8000
+- **Telegram bots:** Alfred, Elsa, Remy, Lebowski (if tokens configured)
+- **All agents:** Registered and operational
+
+**Verify health:**
+```bash
+python3 scripts/health_check.py
+```
+
+**Run tests:**
+```bash
+python3 scripts/test_all.py
+```
+
+**Endpoints:**
+- Health check: `http://localhost:8000/`
+- API explorer: `http://localhost:8000/docs`
+- Message endpoint: `POST http://localhost:8000/message`
 
 ---
 
 ## Environment Variables (`.env`)
 
 ```bash
+# LLM Provider (Multi-model routing in Phase 2)
 LLM_PROVIDER=ollama                    # ollama | claude | openai
-OLLAMA_MODEL=qwen2.5:7b
+OLLAMA_MODEL=qwen2.5:7b               # Default chat model
 OLLAMA_URL=http://localhost:11434
 
-# For cloud LLM (swap LLM_PROVIDER above)
+# For cloud LLM (set LLM_PROVIDER=claude or LLM_PROVIDER=openai)
 ANTHROPIC_API_KEY=
 OPENAI_API_KEY=
 
-# Telegram
-TELEGRAM_TOKEN=                        # from @BotFather
-ALLOWED_TELEGRAM_USER_IDS=            # your Telegram user ID from @userinfobot
+# Telegram Bots (get tokens from @BotFather)
+TELEGRAM_TOKEN_ALFRED=                 # Main orchestrator bot
+TELEGRAM_TOKEN_ELSA=                   # Fridge inventory bot
+TELEGRAM_TOKEN_REMY=                   # Recipe & pantry bot (optional)
+TELEGRAM_TOKEN_LEBOWSKI=               # Shopping bot (optional)
+ALLOWED_TELEGRAM_USER_IDS=            # Your Telegram user ID from @userinfobot
 
-# DB (SQLite default, no changes needed for Phase 1)
+# Database
 DATABASE_URL=sqlite:///./data/roomy.db
+
+# Swiggy MCP (for real integration - Phase 3)
+SWIGGY_API_KEY=                       # Pending credentials
+SWIGGY_MCP_BASE_URL=https://mcp.swiggy.com/im
 ```
 
 ---

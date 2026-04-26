@@ -1,18 +1,18 @@
 # Architecture — Project Roomy
 
-Last updated: April 2026 — reflects Phase 1 implementation
+Last updated: April 2026 — reflects Phase 2 implementation (complete)
 
 ---
 
 ## Current State
 
-Phase 0 complete. Phase 1 backend complete. Interfaces (Telegram, Dashboard) in progress.
+Phase 2 complete. All backend agents operational with mock Swiggy MCP integration.
 
 ```
 ✅ shared/          Core contracts and utilities
-✅ agent_skills/    Alfred (orchestrator) + Elsa (fridge)
-📋 interfaces/      Telegram bot (token added), Dashboard (Next.js TBD)
-📋 roomie-web/      Next.js dashboard project (to be initialized)
+✅ agent_skills/    Alfred, Elsa, Remy, Lebowski (all operational)
+✅ interfaces/      Telegram bots (4 bots active)
+📋 roomie-web/      Next.js dashboard (Phase 3 - next)
 ```
 
 ---
@@ -21,10 +21,10 @@ Phase 0 complete. Phase 1 backend complete. Interfaces (Telegram, Dashboard) in 
 
 | Agent | Domain | Core Responsibilities | Phase |
 |-------|--------|----------------------|-------|
-| **Alfred** | Orchestration | Intent routing, multi-agent coordination, confirmation gate, session management | 1 ✅ |
-| **Elsa** | Fridge inventory | Stock tracking, low stock alerts, inventory queries, usage rate tracking | 1 ✅ |
-| **Remy** | Kitchen operations | Recipe parsing, meal planning, missing ingredient compilation, pantry inventory | 2 📋 |
-| **Lebowski** | Procurement | Catalog matching (Hinglish → SKU), pricing, cart building, order placement, price tracking | 2 📋 |
+| **Alfred** | Orchestration | Intent routing, multi-agent coordination, confirmation gate, session management, conversational interface | 1-2 ✅ |
+| **Elsa** | Fridge inventory | Stock tracking, low stock alerts, inventory queries, CRUD operations | 1 ✅ |
+| **Remy** | Kitchen operations | Recipe parsing (3 modes), meal planning, missing ingredient compilation, pantry inventory | 2 ✅ |
+| **Lebowski** | Procurement | Catalog matching (Hinglish → SKU), pricing, cart building, order placement (mock MCP ready) | 2 ✅ |
 | **Finn** | Analytics | Household spend, savings vs retail, purchase patterns, budget alerts | 4 🔜 |
 | **Iris** | Smart home | Device control, automation rules, energy monitoring | 4 🔜 |
 
@@ -72,42 +72,45 @@ Inspired by [Recipe-to-Cart reference implementation](https://lnkd.in/gVwWnFJP):
 ```
 ┌─────────────────────────────────────────────────────┐
 │                   INTERFACE LAYER                   │
-│   Telegram (alfred_roomie_bot)   Dashboard (Next.js)│
-│   polling mode, local dev        roomie-web/, Vercel│
+│   Telegram Bots          │  Next.js Web (Phase 3)   │
+│   • Alfred ✅            │  • Dashboard   📋        │
+│   • Elsa ✅              │  • Recipe Search 📋       │
+│   • Remy ✅              │  • Meal Planner  📋       │
+│   • Lebowski ✅          │  • Shopping Cart 📋       │
+│   polling mode, local    │  roomie-web/, Vercel     │
 └───────────────────┬─────────────────────┬───────────┘
                     │ REST                │ REST + SWR
                     ▼                     ▼
 ┌─────────────────────────────────────────────────────┐
 │              ORCHESTRATION LAYER                    │
-│              Alfred  (:8000)                        │
+│              Alfred  (:8000) ✅                     │
 │   /message → route_intent → dispatch → confirm gate │
 │   /confirm → execute or cancel pending action       │
 │   /status  → aggregate all agent statuses           │
 │   /events  → agent_events table (dashboard feed)    │
 │   /agents  → registered agent registry              │
-│   /        → serves dashboard.html (interim)        │
+│   /        → health check                           │
 └────────────┬────────────────────────────────────────┘
-             │ in-process call (Phase 1)
-             │ HTTP call (Phase 2+)
+             │ in-process call (shared memory)
              ▼                    
 ┌────────────────────┐   ┌──────────────────────────┐
 │  ELSA (:8001)      │   │  REMY (:8002)            │
 │  Fridge inventory  │   │  Kitchen + pantry        │
-│  ✅ Phase 1        │   │  📋 Phase 2              │
+│  ✅ Phase 1-2      │   │  ✅ Phase 2              │
 └────────────────────┘   └──────────────────────────┘
 
 ┌────────────────────┐   ┌──────────────────────────┐
 │ LEBOWSKI (:8003)   │   │  Future agents           │
 │ Procurement        │   │  register via            │
-│ 📋 Phase 2         │   │  register_agent()        │
+│ ✅ Phase 2         │   │  register_agent()        │
 └────────┬───────────┘   └──────────────────────────┘
          │
          ▼
 ┌─────────────────────────────────────────────────────┐
 │                  STORAGE LAYER                      │
-│   SQLite: data/roomy.db                             │
-│   Tables: inventory, orders, agent_events,          │
-│           price_comparisons, pantry_inventory       │
+│   SQLite: data/roomy.db ✅                          │
+│   Tables: inventory_items, pantry_items,            │
+│           agent_events                              │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -207,17 +210,47 @@ Phase 2: Move `pending_confirmations` to Redis so confirmations survive server r
 
 ## LLM Provider — Current Config
 
+**Multi-LLM Routing (Phase 2):**
+
+Alfred automatically selects the best model for each task:
+
+| Task Type | Model | Use Case |
+|-----------|-------|----------|
+| `chat` | `qwen2.5:7b` | Conversations, routing, general queries |
+| `vision` | `qwen2.5vl:7b` | Image analysis (photo inventory scanning) |
+| `code` | `qwen2.5-coder:7b` | Code generation tasks |
+| `reasoning` | `deepseek-r1:8b` | Complex logical reasoning |
+| `fast` | `qwen2.5-coder:1.5b` | Quick responses where accuracy can trade for speed |
+
+**Model Selection Logic:**
+```python
+# In shared/llm_provider.py
+MODEL_ROUTING = {
+    "chat": "qwen2.5:7b",
+    "vision": "qwen2.5vl:7b",
+    "code": "qwen2.5-coder:7b",
+    "reasoning": "deepseek-r1:8b",
+    "fast": "qwen2.5-coder:1.5b"
+}
+
+def select_model(task_type: str = "chat") -> str:
+    return MODEL_ROUTING.get(task_type, MODEL_ROUTING["chat"])
 ```
-Provider:  ollama (local, no API cost)
-Model:     qwen2.5:7b  (best structured output from available models)
-Vision:    qwen2.5vl:7b (available, used in Phase 3 for fridge camera)
-Fallback:  claude-haiku-4-5-20251001 (change LLM_PROVIDER=claude in .env)
+
+**Provider:**  
+- Primary: `ollama` (local, no API cost)
+- Fallback: `claude-haiku-4-5-20251001` (set `LLM_PROVIDER=claude` in .env)
+
+**Check logs for model selection:**
+```
+[LLM] Using model: qwen2.5:7b
 ```
 
 Switch to Claude Haiku when:
 - JSON routing misroutes more than ~1 in 15 messages
 - Recipe parsing results are poor quality
 - You want faster responses
+- Ollama is unavailable
 
 ---
 

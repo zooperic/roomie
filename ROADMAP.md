@@ -39,18 +39,24 @@
 
 ---
 
-## 🔄 Phase 2: Recipe & Procurement (NEXT SESSION)
+## ✅ Phase 2: Recipe & Procurement (COMPLETE)
 
 **Goal:** Recipe → Missing ingredients → Swiggy cart (all in Telegram)  
-**Estimated time:** 6-7 hours
+**Status:** Complete with mock Swiggy MCP integration  
+**Actual time:** 6 hours
 
-### 2.1 Remy Agent - Recipe Parsing (2-3 hours)
+### 2.1 Remy Agent - Recipe Parsing ✅ COMPLETE
+**Status:** Implemented with 3 parsing modes  
+**Actual time:** 2.5 hours
+
 **Features:**
-- Parse recipe from URL (web_fetch → LLM extract)
-- Parse recipe from copy-paste text
-- Parse recipe from dish name (web_search → fetch → parse)
-- Check Elsa for available ingredients
-- Return missing items list
+- ✅ Parse recipe from URL (web_fetch → LLM extract)
+- ✅ Parse recipe from copy-paste text
+- ✅ Parse recipe from dish name (LLM generates ingredients)
+- ✅ Check Elsa (fridge) + Remy (pantry) for available ingredients
+- ✅ Return missing items list
+- ✅ Pantry inventory management (CRUD operations)
+- ✅ Meal suggestions based on available ingredients
 
 **Example:**
 ```
@@ -67,19 +73,23 @@ Remy: "Spaghetti Carbonara needs:
 
 ---
 
-### 2.2 Lebowski Agent - Catalog Matching (3-4 hours)
-**Features:**
-- Hinglish translation (haldi → turmeric)
-- IDF-weighted catalog search (~100 lines)
-- Pack size rounding (need 50g → match 100g pack)
-- SKU matching to Swiggy Instamart
-- Cart building with prices
+### 2.2 Lebowski Agent - Catalog Matching ✅ COMPLETE
+**Status:** Implemented with mock Swiggy MCP  
+**Actual time:** 3 hours
 
-**Strategy:** 
-- No fuzzy-match libraries (vendor lock-in)
-- Simple token search + primary noun tiebreaking
-- Hinglish dictionary JSON (curated list)
-- **Mock Swiggy MCP** for development (real integration when credentials available)
+**Features:**
+- ✅ Hinglish translation (54 translations: haldi → turmeric, etc.)
+- ✅ IDF-weighted catalog search (no external fuzzy libraries)
+- ✅ Smart pack size rounding (need 10g → match 25g pack)
+- ✅ SKU matching with mock Swiggy catalog (34 products)
+- ✅ Cart building with category grouping + pricing
+- ✅ Mock order placement (ready for real Swiggy API)
+
+**Implementation:** 
+- ✅ Simple token search + IDF scoring (no vendor lock-in)
+- ✅ Hinglish dictionary JSON (`hinglish_dict.json` - 54 translations)
+- ✅ Mock catalog JSON (`mock_catalog.json` - 34 products across 7 categories)
+- ✅ **Mock Swiggy MCP** for development (switch to real API when credentials available)
 
 **Example:**
 ```
@@ -176,22 +186,98 @@ Lebowski: "Price comparison across platforms:
 
 ---
 
-## 🌐 Phase 3: Next.js Web Dashboard (After Phase 2)
+## 🌐 Phase 3: Next.js Web Dashboard (NEXT)
 
-**When:** Once all agents work end-to-end in Telegram  
+**When:** Now that all agents work end-to-end  
 **Why:** Backend API exists, just need frontend UI  
-**Estimated time:** 4-6 hours
+**Estimated time:** 12-15 hours total
 
-### Features
-1. **Dashboard** - Fridge inventory, recent events, low stock alerts
-2. **Recipe Search** - URL input → ingredient check → cart
-3. **Shopping Cart** - Review items, prices before ordering
-4. **Meal Planner** - Calendar view, drag-drop meals
+### 3.1 Dashboard Foundation (2 hours)
+**Features:**
+- Next.js 14 setup with App Router
+- API client for Alfred communication
+- Dashboard home with system status
+- Quick stats (fridge items, pantry items, recent orders)
+- Quick action buttons (Add Item, Parse Recipe, Build Cart)
 
-### Tech Stack
-- Next.js 14 (App Router)
+**Tech Stack:**
+- Next.js 14 (App Router) + TypeScript
 - Tailwind CSS + shadcn/ui
+- React Query for API state
 - Connects to Alfred API (:8000)
+
+---
+
+### 3.2 Inventory Managers (2 hours)
+**Features:**
+- **Fridge Manager** - Visual inventory grid with CRUD operations
+- **Pantry Manager** - Similar to fridge for dry goods
+- Search/filter capabilities
+- Category grouping
+- Low stock indicators
+- Expiry warnings (fridge only)
+
+---
+
+### 3.3 Recipe Parser Interface (2 hours)
+**Features:**
+- 3 input modes (tabs): URL, Text, Dish Name
+- Parse button with loading state
+- Ingredient display with availability check
+- Missing items highlighted
+- "Shop Now" button → redirects to cart with missing items
+
+---
+
+### 3.4 Shopping Cart Builder (2 hours)
+**Features:**
+- Accept items from recipe parser
+- Display matched products from catalog
+- Group by category (dairy, spices, etc.)
+- Show pack sizes, prices, SKUs
+- Calculate subtotal + delivery fee
+- "Place Order" button (mock Swiggy)
+- Order confirmation modal
+
+---
+
+### 3.5 Real Swiggy Integration (2 hours)
+**When:** Swiggy credentials available  
+**Changes Required:**
+- Update `.env` with real Swiggy API key
+- Replace mock MCP calls in `lebowski/main.py`:
+  - `_match_catalog()` → real product search
+  - `_place_order()` → real order API
+- Test with small orders first
+- Error handling for API failures
+
+**Files to Update:**
+- `agent_skills/lebowski/main.py`
+- `.env` (add SWIGGY_API_KEY, SWIGGY_MCP_URL)
+
+---
+
+### 3.6 Multi-Platform Comparison (2 hours)
+**Goal:** Compare prices across Swiggy, Zomato, Zepto  
+**Features:**
+- Create new `ShopperAgent` for multi-platform logic
+- Price comparison table
+- Best deal recommendations
+- User preference system (price vs speed)
+
+**Files to Create:**
+- `agent_skills/shopper/main.py`
+- `.env` additions: ZOMATO_API_KEY, ZEPTO_API_KEY
+
+---
+
+### 3.7 Polish & Deploy (2 hours)
+**Features:**
+- UI/UX improvements
+- Performance optimization
+- Docker setup
+- Production deployment
+- Error tracking (Sentry)
 
 ### Architecture
 ```
@@ -199,7 +285,9 @@ Next.js Frontend (:3000)
        ↓
   Alfred API (:8000)
        ↓
-  Agents (Elsa, Remy, Lebowski)
+  Agents (Alfred, Elsa, Remy, Lebowski)
+       ↓
+  Database (SQLite → PostgreSQL in prod)
 ```
 
 **Phase 3 Complete:** Web + Telegram interfaces both working
@@ -245,31 +333,40 @@ Next.js Frontend (:3000)
 │                   INTERFACES                     │
 ├─────────────────────────────────────────────────┤
 │  Telegram Bots          │  Next.js Web (Phase 3)│
-│  • Alfred (orchestrator)│  • Dashboard           │
-│  • Elsa (fridge) ✅     │  • Recipe Search       │
-│  • Remy (kitchen) 🔄    │  • Meal Planner       │
-│  • Lebowski (shop) 🔄   │  • Shopping Cart      │
+│  • Alfred (orchestrator)│  • Dashboard    🔄     │
+│  • Elsa (fridge) ✅     │  • Recipe Search 🔄    │
+│  • Remy (pantry) ✅     │  • Meal Planner  🔄    │
+│  • Lebowski (shop) ✅   │  • Shopping Cart 🔄    │
 └──────────────┬──────────┴───────────────────────┘
                │
-         Alfred API (:8000)
+         Alfred API (:8000) ✅
                │
         ┌──────┴──────┐
         │   Agents    │
         ├─────────────┤
-        │ • Elsa ✅   │
-        │ • Remy 🔄   │ ← Phase 2
-        │ • Lebowski🔄│ ← Phase 2
+        │ • Alfred ✅ │ ← Conversational + Router
+        │ • Elsa ✅   │ ← Fridge inventory
+        │ • Remy ✅   │ ← Recipe parser + Pantry
+        │ • Lebowski✅│ ← Procurement + Catalog
+        └──────┬──────┘
+               │
+        ┌──────┴──────┐
+        │  Database   │
+        │  SQLite ✅  │
         └─────────────┘
 ```
+
+**Phase 2 Status:** All agents operational with mock Swiggy MCP
 
 ---
 
 ## Timeline Estimate
 
 - **Phase 1:** ✅ Complete (Telegram bots + Elsa agent)
-- **Phase 2:** 1 session (~6-7 hours) - Recipe + procurement
-- **Phase 3:** 1 session (~4-6 hours) - Next.js dashboard
+- **Phase 2:** ✅ Complete (~6 hours) - Recipe + procurement with mock MCP
+- **Phase 3:** 🔄 Next (~12-15 hours) - Next.js dashboard + real Swiggy integration
 - **Phase 4:** Optional - Hardware integration
-- **Phase 5:** 1 session (~4-6 hours) - Deployment
+- **Phase 5:** Future (~4-6 hours) - Deployment & polish
 
-**Total to working MVP:** 2-3 sessions (~15-20 hours)
+**Total to production MVP:** Phase 1 + 2 complete ✅  
+**Remaining for web interface:** Phase 3 (~12-15 hours)

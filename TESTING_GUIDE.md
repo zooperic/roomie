@@ -370,3 +370,313 @@ Before marking Phase 2 complete:
 - [ ] No Python errors in console
 
 **When all checked:** Phase 2 is production-ready (with mock MCP)! 🎉
+
+---
+
+## 🧪 Comprehensive Test Scenarios
+
+### Database Reset (Fresh Start)
+```bash
+cd ~/Desktop/meh/roomie
+rm roomie.db
+bash scripts/start_dev.sh
+```
+
+### Test Suite: Elsa (Fridge Manager)
+
+#### Add Item
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "add milk 1 liter",
+    "user_id": "test",
+    "force_agent": "elsa"
+  }'
+```
+
+#### View Inventory
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "show fridge contents",
+    "user_id": "test",
+    "force_agent": "elsa"
+  }'
+```
+
+#### Subtract Quantity
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "use milk 500ml",
+    "user_id": "test",
+    "force_agent": "elsa"
+  }'
+```
+
+#### Remove Item
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "remove milk",
+    "user_id": "test",
+    "force_agent": "elsa"
+  }'
+```
+
+#### Low Stock Check
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "what is low in stock?",
+    "user_id": "test",
+    "force_agent": "elsa"
+  }'
+```
+
+---
+
+### Test Suite: Remy (Recipe & Pantry)
+
+#### Add to Pantry
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "add rice 5kg to pantry",
+    "user_id": "test",
+    "force_agent": "remy"
+  }'
+```
+
+#### View Pantry
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "show pantry",
+    "user_id": "test",
+    "force_agent": "remy"
+  }'
+```
+
+#### Meal Suggestions
+```bash
+# First add some ingredients
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "add rice 2kg, dal 1kg, onions 500g to pantry",
+    "user_id": "test",
+    "force_agent": "remy"
+  }'
+
+# Ask for suggestions
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "What can I cook with what I have?",
+    "user_id": "test",
+    "force_agent": "remy"
+  }'
+```
+
+---
+
+### Test Suite: Lebowski (Procurement)
+
+#### Hinglish Translation Test
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "match catalog for haldi, dhaniya, jeera, atta, chawal",
+    "user_id": "test",
+    "force_agent": "lebowski"
+  }'
+```
+
+**Expected Translations:**
+- haldi → turmeric
+- dhaniya → coriander  
+- jeera → cumin
+- atta → wheat flour
+- chawal → rice
+
+#### Pack-Size Rounding Test
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "I need kasuri methi 10g",
+    "user_id": "test",
+    "force_agent": "lebowski"
+  }'
+```
+**Expected:** Match 25g pack (smallest that fits 10g need)
+
+#### Build Cart
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "build cart for: paneer 500g, yogurt 200g, kasuri methi 2 tbsp, cream 200ml",
+    "user_id": "test",
+    "force_agent": "lebowski"
+  }'
+```
+
+**Expected:**
+- Products matched and grouped by category
+- Subtotal + delivery fee calculated
+- Total shown
+
+#### Place Order (Mock)
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "place order",
+    "user_id": "test",
+    "force_agent": "lebowski"
+  }'
+```
+
+**Expected:**
+- Mock order confirmation
+- Order ID generated
+- ETA shown (~30 min)
+
+---
+
+### End-to-End: Complete Recipe-to-Cart Flow
+
+**Step 1: Reset & Parse Recipe**
+```bash
+# Clear database
+rm roomie.db
+bash scripts/start_dev.sh
+
+# Parse recipe with all ingredients
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Can I make Paneer Tikka? Ingredients: 500g paneer, 200g yogurt, 2 tbsp kasuri methi, 1 tsp haldi, 2 tsp red chili powder, 2 tbsp cream",
+    "user_id": "test",
+    "force_agent": "remy"
+  }'
+```
+**Expected:** All items missing (empty fridge/pantry)
+
+**Step 2: Build Cart**
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "build cart for: paneer 500g, yogurt 200g, kasuri methi 2 tbsp, haldi 1 tsp, red chili powder 2 tsp, cream 200ml",
+    "user_id": "test",
+    "force_agent": "lebowski"
+  }'
+```
+
+**Expected:**
+- All items matched from catalog
+- Hinglish translated (haldi → turmeric)
+- Pack sizes rounded appropriately
+- Total cart value shown
+
+**Step 3: Place Order**
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "place order",
+    "user_id": "test",
+    "force_agent": "lebowski"
+  }'
+```
+
+**Expected:** Mock order confirmation
+
+---
+
+### Edge Case Tests
+
+#### Empty Inventory
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "show fridge",
+    "user_id": "test",
+    "force_agent": "elsa"
+  }'
+```
+**Expected:** "Fridge is empty" or empty list
+
+#### Remove Non-Existent Item
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "remove dragon fruit",
+    "user_id": "test",
+    "force_agent": "elsa"
+  }'
+```
+**Expected:** Error: "Dragon fruit not in fridge"
+
+#### Subtract More Than Available
+```bash
+# Add 500ml milk
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "add milk 500ml", "user_id": "test", "force_agent": "elsa"}'
+
+# Try to use 1L
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{"message": "use milk 1000ml", "user_id": "test", "force_agent": "elsa"}'
+```
+**Expected:** Error: "Not enough milk (have 500ml, need 1000ml)"
+
+#### Unknown Ingredient
+```bash
+curl -X POST http://localhost:8000/message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "match catalog for unicorn tears",
+    "user_id": "test",
+    "force_agent": "lebowski"
+  }'
+```
+**Expected:** "Product not found in catalog"
+
+---
+
+### Common Issues & Solutions
+
+#### Issue: Timeout on First Request
+**Cause:** Ollama loading model into memory  
+**Solution:** Wait 30-60s, timeout now set to 60s in scripts
+
+#### Issue: "No agent named 'X' is registered"
+**Cause:** Alfred API didn't start properly  
+**Solution:** Check startup logs, restart with auto-kill script
+
+#### Issue: 404 on /message endpoint
+**Cause:** Port 8000 not running Alfred  
+**Solution:** `lsof -ti:8000 | xargs kill -9`, then restart
+
+#### Issue: Empty LLM responses
+**Cause:** Ollama not running or model not pulled  
+**Solution:** `ollama pull qwen2.5:7b`, verify Ollama running
+
+#### Issue: Database locked
+**Cause:** Multiple processes accessing DB  
+**Solution:** Stop all processes, restart cleanly
