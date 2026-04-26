@@ -227,7 +227,8 @@ DATABASE_URL=sqlite:///./data/roomy.db
 
 ---
 
-## 🖼️ ROOMIE Screens Carousel
+## 🖼️ ROOMIE Screen References
+
 
 <div align="center">
 
